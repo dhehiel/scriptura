@@ -22,6 +22,10 @@ cross-referenced from here.
 
 ## [0.1.0] — M0 — Architecture Foundation
 
+> **Status: IN PROGRESS (M0 recovery).** This release section describes the target scope. Items marked
+> "LANDS IN R2/R3" are explicitly NOT yet delivered. See `docs/milestones/M0-acceptance-criteria.md` for
+> the per-criterion status and `M0-IMPLEMENTATION-REPORT.md` (R4) for the final accounting.
+
 Initial bootstrap of the repository. Establishes architecture, governance, schemas, and infrastructure
 scaffolding. **Contains no corpus data and implements no autonomous agents.**
 
@@ -103,46 +107,58 @@ scaffolding. **Contains no corpus data and implements no autonomous agents.**
 - `agents/` — `agent-spec`, `agent-run`.
 - `verification/` — `verification-result`.
 
-**Source code — `src/scriptura/`**
+**Source code — `src/scriptura/` — IMPLEMENTED at M0 (R0/R1)**
 
 - `core/reference.py` — canonical Bible references, book registry, multi-canon profiles, parsing and
-  normalisation, range handling.
+  normalisation, range handling (verified by execution).
 - `core/layers.py` — the five epistemic layers as an enforced enum, with attribution and flagging requirements.
 - `core/hashing.py` — content hashing and provenance digests.
 - `core/errors.py` — error hierarchy rooted at `ScripturaError`.
-- `storage/sqlite.py` — connection management, pragmas, capability probe for FTS5 and JSON1.
-- `storage/migrations.py` — forward-only migration runner with an applied-migrations ledger.
-- `storage/migrations/0001_bootstrap.sql` — bootstrap schema.
-- `graph/model.py` — modular knowledge graph over SQLite: typed nodes and edges, layer-typed, provenance-bearing.
-- `graph/queries.py` — graph traversal and layer-filtered queries.
-- `search/fts.py` — SQLite FTS5 wrapper with `unicode61` tokenizer and diacritic folding.
-- `retrieval/leann_adapter.py` — optional LEANN adapter, import-guarded, graceful degradation to FTS5.
+- `core/text.py` — explicit Unicode diacritic folding (`fold_diacritics`, final-sigma normalisation).
+- `storage/sqlite.py` — connection management, pragmas, capability probe for FTS5 and JSON1
+  (verified by execution).
+- `storage/migrations.py` — forward-only migration runner with an applied-migrations ledger
+  (verified by execution, including ledger hash-mismatch detection).
+- `storage/migrations/0001_bootstrap.sql` — bootstrap schema (applies cleanly; 17 tables).
+- `graph/model.py` — modular knowledge graph over SQLite: typed nodes and edges, layer-typed,
+  provenance-bearing (verified by execution).
+- `graph/queries.py` — bounded, layer-filtered graph traversal (verified by execution).
+- `search/fts.py` — SQLite FTS5 wrapper with original + explicitly folded index columns. Matching is a
+  union over both columns, never transliteration (VERIFIED by execution: Greek polytonic/plain/prefix,
+  Hebrew pointed/unpointed/prefix, Latin accented/plain/prefix; no romanization leakage; stored
+  text byte-identical).
+- `schemas/validator.py` — stdlib JSON Schema subset validator (verified by execution: all schemas load,
+  registries validate with zero violations, unsupported keywords raise).
+
+**Source code — lands in R2 (NOT yet implemented)**
+
+- `retrieval/leann_adapter.py` — optional LEANN adapter, import-guarded.
 - `retrieval/router.py` — retrieval routing with capability-based backend selection.
 - `ingestion/pipeline.py` — licence-gated ingestion framework.
 - `ingestion/validators.py` — dataset validation rules.
 - `ingestion/adapters/base.py` — adapter contract. No dataset adapters implemented at M0.
 - `provenance/licensing.py` — licence manifest and source registry loading and gate enforcement.
-- `schemas/validator.py` — stdlib JSON Schema subset validator.
 - `api/server.py` — read-only stdlib HTTP surface.
 - `api/fastapi_app.py` — optional FastAPI surface, import-guarded and gated by ADR-0004.
+- `src/scriptura/__init__.py` — package entry point.
 
 **Directory structure**
 
 - `datasets/` — `raw/`, `interim/`, `processed/`, `manifests/`, `third_party/`. All gitignored for data.
 - `agents/` — `specs/`, `runs/`, `prompts/`. Declarative specifications only.
 - `evaluation/` — `benchmarks/`, `datasets/`, `reports/`.
-- `tests/` — stdlib `unittest` suite, pytest-compatible.
-- `tools/` — `check_repo.py`, `check_licences.py`, `check_docs.py`, `build_db.py`.
+- `tests/` — stdlib `unittest` suite, pytest-compatible (LANDS IN R2/R3).
+- `tools/` — `check_repo.py`, `check_licences.py`, `check_docs.py`, `build_db.py`, `_gen_registry.py` (check tools LAND IN R2).
 
 **Project configuration**
 
-- `pyproject.toml` — packaging, zero mandatory runtime dependencies, optional extras.
-- `Makefile` — `check`, `test`, `check-docs`, `check-licences`, `db`, `clean`.
-- `.gitignore` — excludes all dataset bytes, databases, and local artefacts.
-- `.editorconfig` — editor conventions.
-- `.github/workflows/ci.yml` — CI running checks and tests.
-- `.github/ISSUE_TEMPLATE/` — bug report, dataset addition, architecture decision templates.
-- `.github/PULL_REQUEST_TEMPLATE.md` — PR checklist including licence and provenance compliance.
+- `pyproject.toml` — packaging, zero mandatory runtime dependencies, optional extras (LANDS IN R2).
+- `Makefile` — `check`, `test`, `check-docs`, `check-licences`, `db`, `clean` (LANDS IN R2).
+- `.gitignore` — excludes all dataset bytes, databases, and local artefacts (IN PLACE).
+- `.editorconfig` — editor conventions (LANDS IN R2).
+- `.github/workflows/ci.yml` — CI running checks and tests (LANDS IN R2).
+- `.github/ISSUE_TEMPLATE/` — bug report, dataset addition, architecture decision templates (LAND IN R2).
+- `.github/PULL_REQUEST_TEMPLATE.md` — PR checklist including licence and provenance compliance (LANDS IN R2).
 
 ### Security
 
@@ -154,7 +170,13 @@ scaffolding. **Contains no corpus data and implements no autonomous agents.**
 
 ### Known limitations at M0
 
-Recorded deliberately, not omissions:
+Recorded deliberately, not omissions. Updated during the M0 recovery (R0/R1):
+
+- **Recovery in progress.** The R0 checkpoint commit states what is incomplete. `M0-acceptance-criteria.md`
+  now classifies each criterion individually as Met, Deferred, or Blocked instead of claiming completion.
+- **FTS design corrected.** FTS5 `remove_diacritics` was verified to fold Latin only; Greek and Hebrew
+  folding is explicit via `core/text.py` into a separate indexed column. ADR-0009 and BKB-DATA-001 §7
+  (v1.0.1) record the verified behaviour.
 
 - **No corpus data.** Nothing has been ingested. Ingestion is gated on architecture review.
 - **No agents execute.** `agents/specs/` contains declarative specifications only.

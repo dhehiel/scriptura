@@ -6,7 +6,7 @@
 |---|---|
 | **ID** | BKB-DATA-001 |
 | **Status** | Accepted |
-| **Version** | 1.0.0 |
+| **Version** | 1.0.1 |
 | **Milestone** | M0 |
 | **Owner** | Maintainer |
 | **Normative** | Yes |
@@ -468,11 +468,15 @@ A layer promotion without evidence, reasoning, and actor **cannot be inserted**.
 | U3 | Text is **never silently normalised.** Normalisation is an explicit, recorded transformation |
 | U4 | Combining marks, directionality, and cantillation are preserved |
 | U5 | No silent transliteration |
-| U6 | FTS5 indexing may fold diacritics for **matching**, but the stored text is never altered |
+| U6 | FTS5 indexing may fold diacritics for **matching**, but the stored text is never altered. FTS5's own `remove_diacritics` folds Latin only; Greek and Hebrew folding is explicit, via `scriptura.core.text.fold_diacritics`, into a separate indexed column |
 | U7 | Byte-exact comparison uses the stored text; match comparison may use a folded form |
 
 Rule U6 is important: diacritic folding is a **search** affordance. Greek polytonic and Hebrew pointing must be
 searchable without diacritics, but the underlying text must remain exactly as the edition attests it.
+The folding is explicit, not delegated to FTS5's built-in option: verified on SQLite 3.40.1 that FTS5
+`remove_diacritics 2` folds Latin diacritics only and does not fold Greek polytonic or Hebrew niqqud.
+Matching is a union over the original and folded columns, never transliteration. Greek final sigma is
+normalised symmetrically in the folded column; the stored text is untouched.
 
 ---
 
@@ -568,4 +572,5 @@ An implementation that violates any invariant is defective regardless of whether
 
 | Version | Date | Change | ADR |
 |---|---|---|---|
+| 1.0.1 | M0 (recovery) | U6 clarified: explicit folded column; built-in `remove_diacritics` verified Latin-only. | ADR-0009 |
 | 1.0.0 | M0 | Initial specification: five layers, reference system, provenance model, relational schema, identifier policy, Unicode rules, migration policy, serialisation contract. | ADR-0007, ADR-0008 |

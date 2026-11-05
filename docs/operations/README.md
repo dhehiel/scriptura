@@ -19,7 +19,9 @@ python3 -c "from scriptura.storage.sqlite import capability_report; print(capabi
 ```
 
 The probe reports the SQLite version, whether FTS5 is compiled in, whether JSON1 is functional, and whether the
-`unicode61` tokenizer with diacritic folding is available. It fails loudly if a required capability is missing.
+`unicode61` tokenizer is available. Note: FTS5's built-in `remove_diacritics` folds Latin only, so Scriptura
+folds Greek and Hebrew explicitly via `scriptura.core.text.fold_diacritics`. The probe fails loudly if a
+required capability is missing.
 
 ---
 

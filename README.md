@@ -111,7 +111,7 @@ in an Architecture Decision Record; none of these is incidental.
 |---|---|---|
 | Language | **Python 3.11+** | Ecosystem depth for philological and ML work; stdlib-only runtime at M0 |
 | Primary store | **SQLite** | Single file, zero server, durable, transactional, universally auditable. [ADR-0001](docs/architecture/ADR/ADR-0001-sqlite-as-primary-store.md) |
-| Lexical search | **SQLite FTS5** | In-database full-text index with `unicode61` tokenizer and diacritic folding — essential for Greek and Hebrew. [ADR-0009](docs/architecture/ADR/ADR-0009-fts5-primary-lexical-search.md) |
+| Lexical search | **SQLite FTS5 + explicit Unicode folding** | In-database full-text index. FTS5's built-in folding covers Latin only; Greek and Hebrew are folded explicitly into a separate indexed column — union matching, no transliteration, stored text untouched. [ADR-0009](docs/architecture/ADR/ADR-0009-fts5-primary-lexical-search.md) |
 | Knowledge graph | **Modular graph over SQLite** | Typed nodes and edges as relational tables. No separate graph database. [ADR-0005](docs/architecture/ADR/ADR-0005-no-graph-database.md), [ADR-0007](docs/architecture/ADR/ADR-0007-modular-knowledge-graph.md) |
 | Semantic retrieval | **Optional LEANN adapter** | Pluggable, import-guarded, MIT-licensed. Absent by default; FTS5 remains the baseline. [ADR-0006](docs/architecture/ADR/ADR-0006-leann-optional-retrieval.md) |
 | HTTP surface | **stdlib `http.server`; FastAPI gated** | FastAPI adopted only behind an approved ADR showing justification. [ADR-0004](docs/architecture/ADR/ADR-0004-fastapi-adoption-gate.md) |

@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | **Milestone** | M0 |
-| **Status** | Criteria met; **architecture review outstanding** |
+| **Status** | Criteria A-G met; **verification harness and architecture review outstanding** |
 | **Gate** | M0 → M1 **CLOSED** |
 | **Corpus data** | **None.** Prohibited at M0. |
 
@@ -57,22 +57,22 @@ make check && make test
 | C2 | Dataset landing zone exists with `raw/`, `interim/`, `processed/`, `manifests/`, `third_party/`, and is gitignored for content | `datasets/`; `.gitignore`; `tests/test_repo_hygiene.py` | Met |
 | C3 | Schema tree exists with `core/`, `data/`, `agents/`, `verification/` | `schemas/` | Met |
 | C4 | Source tree exists with `core/`, `storage/`, `graph/`, `search/`, `retrieval/`, `ingestion/`, `provenance/`, `schemas/`, `api/` | `src/scriptura/` | Met |
-| C5 | Research agent tree exists with `specs/`, `runs/`, `prompts/` and contains **no executable agent** | `agents/`; `tests/test_agents_absent.py` | Met |
-| C6 | Ingestion pipeline tree exists with framework and adapter contract, and **no implemented adapter** | `src/scriptura/ingestion/`; `tests/test_ingestion.py` | Met |
+| C5 | Research agent tree exists with `specs/`, `runs/`, `prompts/` and contains **no executable agent** | `agents/` (declarative specs only, no runnable code); `tests/test_agents_absent.py` | Deferred — verified in R2/R3 test run |
+| C6 | Ingestion pipeline tree exists with framework and adapter contract, and **no implemented adapter** | `src/scriptura/ingestion/` (licence-gated pipeline, base adapter, validators); `tests/test_ingestion.py` | Deferred — verified in R2/R3 test run |
 | C7 | Evaluation and test trees exist | `evaluation/`, `tests/` | Met |
-| C8 | Required structure is machine-checked, not merely present | `tools/check_repo.py`; `make check` | Met |
+| C8 | Required structure is machine-checked, not merely present | `tools/check_repo.py`; `make check` | Blocked — `Makefile` and check tools land in R2 |
 
 ## D. Architecture specifications
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
 | D1 | **BKB-ARCH-001** System Architecture: decomposition, process model, module boundaries, deployment, Gomine interoperability | `docs/architecture/BKB-ARCH-001-system-architecture.md` | Met |
-| D2 | **BKB-DATA-001** Data Model and Epistemic Layers: five layers, references, provenance, relational schema, invariants | `docs/architecture/BKB-DATA-001-data-model.md` | Met |
+| D2 | **BKB-DATA-001** Data Model and Epistemic Layers: five layers, references, provenance, relational schema, invariants | `docs/architecture/BKB-DATA-001-data-model.md` (v1.0.1 — U6 corrected for verified folding behaviour) | Met |
 | D3 | **BKB-CORPUS-001** Corpus Ingestion: lifecycle, licence gate, adapter contract, validation, provenance | `docs/architecture/BKB-CORPUS-001-corpus-ingestion.md` | Met |
 | D4 | **BKB-AGENTS-001** Research Agent Framework: contracts, capability boundaries, evidence obligations, human review. **Specified, not implemented.** | `docs/architecture/BKB-AGENTS-001-agent-framework.md` §2 | Met |
 | D5 | **BKB-VERIFY-001** Verification Framework: states, evidence chains, confidence, disagreement, checks, assertion rules | `docs/architecture/BKB-VERIFY-001-verification-framework.md` | Met |
 | D6 | **DKF-ARCH-001** Discovery and Knowledge Framework: hypothesis lifecycle, strategies, cross-domain linking, ranking, integrity | `docs/architecture/DKF-ARCH-001-discovery-framework.md` | Met |
-| D7 | Each specification carries ID, status, version, normative flag, and change history | Verified by `tools/check_docs.py` | Met |
+| D7 | Each specification carries ID, status, version, normative flag, and change history | Present in text (verified by inspection); `tools/check_docs.py` lands in R2 | Deferred — re-verified in R2 run |
 | D8 | Specification index and identifier convention documented | `docs/architecture/README.md` | Met |
 | D9 | Architecture Decision Records exist with a mandatory "Alternatives considered" section | `docs/architecture/ADR/` — ADR-0001 … ADR-0010 | Met |
 
@@ -80,50 +80,50 @@ make check && make test
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| E1 | Dataset source registry exists, is JSON, and is schema-validated | `docs/data/source-registry.json`; `tests/test_schemas.py` | Met |
-| E2 | Licence manifest exists, is JSON, and is schema-validated | `docs/data/licence-manifest.json`; `tests/test_schemas.py` | Met |
-| E3 | Every entry carries an explicit `verification_status` distinguishing verified from unverified | `make check-licences` | Met |
-| E4 | No licence is asserted without a primary source, and no availability is fabricated | Registry `evidence_kind` field; `make check-licences` enforces `verified` ⇒ `evidence_kind == primary` | Met |
+| E1 | Dataset source registry exists, is JSON, and is schema-validated | `docs/data/source-registry.json`; conformance verified at authoring time with the stdlib validator; `tests/test_schemas.py` lands in R3 | Deferred — re-verify in R3 run |
+| E2 | Licence manifest exists, is JSON, and is schema-validated | `docs/data/licence-manifest.json`; conformance verified at authoring time with the stdlib validator; `tests/test_schemas.py` lands in R3 | Deferred — re-verify in R3 run |
+| E3 | Every entry carries an explicit `verification_status` distinguishing verified from unverified | `make check-licences` | Blocked — lands in R2 |
+| E4 | No licence is asserted without a primary source, and no availability is fabricated | Registry `evidence_kind` field (all `verified` entries carry primary URLs and retrieval dates); gate rule lands in `licensing.py` + `make check-licences` in R2 | Deferred — verified in R2 run |
 | E5 | Verbatim attribution strings recorded where licences require them | `docs/data/attribution/ATTRIBUTIONS.md` | Met |
-| E6 | **No dataset is ingestible at M0**, because the ingestion gate is closed | `ingestion_gate_open: false`; `ingestible: false` for all 27 entries; `make check-licences` | Met |
-| E7 | Registry and manifest are mutually consistent | `make check-licences` | Met |
+| E6 | **No dataset is ingestible at M0**, because the ingestion gate is closed | `ingestion_gate_open: false`; `ingestible: false` for all 27 entries (verified at authoring time); `make check-licences` lands in R2 | Deferred — verified in R2 run |
+| E7 | Registry and manifest are mutually consistent (verified at authoring time) | `make check-licences` lands in R2 | Deferred — verified in R2 run |
 
 ## F. Technology architecture
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| F1 | Python 3.11+ baseline declared | `pyproject.toml` | Met |
-| F2 | SQLite is the primary store; connection management, pragmas, and a capability probe exist | `src/scriptura/storage/sqlite.py`; `tests/test_storage.py` | Met |
-| F3 | SQLite FTS5 is the primary lexical search, with `unicode61` and diacritic folding; stored text is never mutated by folding | `src/scriptura/search/fts.py`; `tests/test_fts.py` | Met |
-| F4 | Modular knowledge graph implemented in SQLite with layer typing and provenance; **no graph database** | `src/scriptura/graph/`; `tests/test_graph.py`; ADR-0005 | Met |
-| F5 | Optional LEANN semantic retrieval adapter, import-guarded, degrading gracefully | `src/scriptura/retrieval/leann_adapter.py`; `tests/test_retrieval.py` | Met |
-| F6 | FastAPI is **not adopted**; the baseline HTTP surface is stdlib, read-only, loopback-bound | `src/scriptura/api/`; `tests/test_api.py`; ADR-0004 | Met |
-| F7 | **Zero mandatory third-party runtime dependencies** | `pyproject.toml` has no `dependencies`; `tests/test_dependency_hygiene.py` | Met |
-| F8 | Each technology choice is recorded in an ADR | ADR-0001, 0002, 0004, 0005, 0006, 0007, 0009 | Met |
+| F1 | Python 3.11+ baseline declared | `pyproject.toml` | Blocked — lands in R2 |
+| F2 | SQLite is the primary store; connection management, pragmas, and a capability probe exist | `src/scriptura/storage/sqlite.py` (capability probe, migrations, ledger — executed at authoring time); `tests/test_storage.py` lands in R3 | Deferred — verified in R3 run |
+| F3 | SQLite FTS5 is the primary lexical search, with `unicode61` and diacritic folding; stored text is never mutated by folding | `src/scriptura/search/fts.py` (union folded matching VERIFIED by execution: Greek/Hebrew/Latin exact+folded+prefix, no romanization, stored text intact); `tests/test_fts.py` lands in R3 | Deferred — verified in R3 run |
+| F4 | Modular knowledge graph implemented in SQLite with layer typing and provenance; **no graph database** | `src/scriptura/graph/` (layer typing, bounded traversal — executed at authoring time); `tests/test_graph.py` lands in R3 | Deferred — verified in R3 run |
+| F5 | Optional LEANN semantic retrieval adapter, import-guarded, degrading gracefully | `src/scriptura/retrieval/` (LEANN absent in reference env, verified); `tests/test_retrieval.py` pins unavailable-backend-raises | Deferred — verified in R2/R3 test run |
+| F6 | FastAPI is **not adopted**; the baseline HTTP surface is stdlib, read-only, loopback-bound | `src/scriptura/api/` (guarded optional module + stdlib server); `tests/test_api.py`; ADR-0004 | Deferred — verified in R2/R3 test run |
+| F7 | **Zero mandatory third-party runtime dependencies** | `pyproject.toml` has no `dependencies` (lands in R2); `tests/test_dependency_hygiene.py` lands in R3 | Blocked — verified in R2/R3 run |
+| F8 | Each technology choice is recorded in an ADR | ADR-0001, 0002, 0004, 0005, 0006, 0007, 0009 (0009 corrected this stage for verified folding behaviour) | Met |
 
 ## G. Critical constraints honoured
 
 | # | Constraint | Evidence | Status |
 |---|---|---|---|
-| G1 | No full Bible datasets downloaded or committed | `tests/test_repo_hygiene.py`; `make check` scans for corpus bytes | Met |
-| G2 | No fabricated source availability or licensing | Registry `evidence_kind` and `verification_status`; failed fetches recorded as results | Met |
-| G3 | No autonomous agents implemented | `tests/test_agents_absent.py`; `agents/specs/` contains no runnable code | Met |
-| G4 | No unnecessary microservices | Single process; `tests/test_dependency_hygiene.py`; ADR-0005 | Met |
-| G5 | No independent graph database introduced | `tests/test_dependency_hygiene.py`; ADR-0005 | Met |
-| G6 | Scripture / historical evidence / linguistic observation / theological interpretation / AI hypothesis remain distinct | `src/scriptura/core/layers.py`; SQL `CHECK` constraints; `tests/test_layers.py` | Met |
-| G7 | Scriptura operates independently while remaining interoperable with Gomine | `tests/test_independence.py`; BKB-ARCH-001 §10 | Met |
+| G1 | No full Bible datasets downloaded or committed | `tests/test_repo_hygiene.py` + `make check` land in R2/R3 (workspace verified clean at authoring: no corpus bytes, no db files, no pyc) | Deferred — verified in R2/R3 run |
+| G2 | No fabricated source availability or licensing | Registry `evidence_kind` and `verification_status`; failed fetches recorded as results | Met (primary-source evidence quoted in registry) |
+| G3 | No autonomous agents implemented | `tests/test_agents_absent.py` lands in R3; `agents/specs/` contains declarative placeholder only | Deferred — verified in R3 run |
+| G4 | No unnecessary microservices | Single process (verified: no services/daemons/schedulers in tree); `tests/test_dependency_hygiene.py` lands in R3 | Deferred — verified in R3 run |
+| G5 | No independent graph database introduced | No graph-database dependency in tree (verified); `tests/test_dependency_hygiene.py` lands in R3 | Deferred — verified in R3 run |
+| G6 | Scripture / historical evidence / linguistic observation / theological interpretation / AI hypothesis remain distinct | `src/scriptura/core/layers.py`; SQL `CHECK` constraints (bootstrap SQL) + `src/scriptura/core/layers.py` (executed at authoring time); `tests/test_layers.py` lands in R3 | Deferred — verified in R3 run |
+| G7 | Scriptura operates independently while remaining interoperable with Gomine | `tests/test_independence.py` lands in R3; no Gomine references in tree (verified by search) | Deferred — verified in R3 run |
 | G8 | Third-party corpus licensing treated as dataset-specific | Registry `licensing_model` field; per-item regimes recorded | Met |
 
 ## H. Verification
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| H1 | Repository structure and hygiene checks pass | `make check` | Met |
-| H2 | Licence and registry consistency checks pass | `make check-licences` | Met |
-| H3 | Documentation integrity checks pass: required files present, relative links resolve, specifications well-formed | `make check-docs` | Met |
-| H4 | Full test suite passes under stdlib `unittest` | `make test` | Met |
-| H5 | CI workflow runs the same checks | `.github/workflows/ci.yml` | Met |
-| H6 | No task is reported complete that was not performed and verified | `M0-IMPLEMENTATION-REPORT.md` | Met |
+| H1 | Repository structure and hygiene checks pass | `make check` | Blocked — `Makefile` and check tools land in R2 |
+| H2 | Licence and registry consistency checks pass | `make check-licences` | Blocked — lands in R2 |
+| H3 | Documentation integrity checks pass: required files present, relative links resolve, specifications well-formed | `make check-docs` | Blocked — lands in R2 |
+| H4 | Full test suite passes under stdlib `unittest` | `make test` | Blocked — suite lands in R2/R3 |
+| H5 | CI workflow runs the same checks | `.github/workflows/ci.yml` | Blocked — workflow lands in R2 |
+| H6 | No task is reported complete that was not performed and verified | `M0-IMPLEMENTATION-REPORT.md` | Deferred — report lands in R4 |
 
 ## I. Gate criterion — **NOT MET**
 
@@ -158,7 +158,8 @@ make check && make test
 
 | Item | Value |
 |---|---|
-| Criteria A–H | **Met**, with evidence |
+| Criteria A–G | Met, with evidence (per-criterion status above) |
+| H — verification harness | **Blocked**, lands in R2/R3 |
 | Criterion I1 | **Not met** — requires human architecture review |
 | Milestone status | **Complete pending architecture review** |
 | M0 → M1 gate | **CLOSED** |

@@ -258,7 +258,7 @@ request ──▶ router ──▶ capability probe
 ### 7.3 Why FTS5 is the baseline
 
 Biblical search is dominated by lexical and morphological queries: lemma, form, phrase, and diacritic-variant
-matching across Greek, Hebrew, Latin, and English. FTS5 with the `unicode61` tokenizer and diacritic folding
+matching across Greek, Hebrew, Latin, and English. FTS5 with the `unicode61` tokenizer plus an explicit diacritic-folded column
 handles this in-database, with no additional process, no additional index format, and no additional failure
 mode. Semantic retrieval is complementary, not substitutive. See
 [ADR-0009](ADR/ADR-0009-fts5-primary-lexical-search.md) and

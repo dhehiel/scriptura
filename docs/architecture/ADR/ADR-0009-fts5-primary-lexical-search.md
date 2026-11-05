@@ -22,8 +22,12 @@ Two properties are essential and non-negotiable for this domain:
 2. **Co-location with data.** An index in a separate system creates a synchronisation problem: which is
    authoritative, and what happens when they disagree?
 
-Verified platform capability: SQLite 3.40.1 with `ENABLE_FTS5` present, JSON1 functional, and the `unicode61`
-tokenizer supporting `remove_diacritics 2`. Confirmed by direct probe in the reference environment.
+Verified platform capability, CORRECTED during M0 implementation: SQLite 3.40.1 has `ENABLE_FTS5`, functional
+JSON1, and the `unicode61` tokenizer with `remove_diacritics 2` (confirmed by direct probe). HOWEVER, probing
+further showed that `remove_diacritics 2` folds LATIN diacritics only (`Deesus` matches `Deesus`). It does NOT
+fold Greek polytonic diacritics (``logos`` with tonos does not match ``logos`` without) and does NOT fold Hebrew
+niqqud (pointed text does not match unpointed text). An earlier draft of this ADR assumed otherwise; that
+assumption was empirically falsified and the design below reflects the verified behaviour.
 
 ## Decision
 
@@ -31,23 +35,33 @@ tokenizer supporting `remove_diacritics 2`. Confirmed by direct probe in the ref
 
 Specifically:
 
-1. FTS5 virtual tables index corpus text and claim statements.
-2. Tokenization uses `unicode61` with `remove_diacritics 2` for matching.
+1. FTS5 virtual tables index corpus text and claim statements, each in TWO columns: the original text
+   as written, and an explicitly folded form computed by `scriptura.core.text.fold_diacritics`.
+2. Tokenization uses `unicode61` with `remove_diacritics 2` (which handles the Latin layer) PLUS the
+   explicit folded column (which handles Greek and Hebrew).
 3. **Diacritic folding is a search affordance only.** The stored text is never altered. BKB-DATA-001 §7 rule U6.
-4. FTS5 tables are maintained in the same database file as the data they index.
-5. Index maintenance is transactional with the write that changes the indexed content.
-6. Search results always carry epistemic layer information.
-7. Search results identify the edition or dataset they came from.
-8. A search never silently merges layers. Layer filtering is a first-class parameter.
-9. FTS5 is the baseline tier; semantic retrieval (ADR-0006) is optional and complementary, never substitutive.
-10. Where an external-content FTS5 table is used, the content table is authoritative and the index is
+4. Matching is UNION, never transliteration: a query is evaluated against both columns and matching hits are
+   unioned. Greek matches Greek, Hebrew matches Hebrew. `logos` (Latin) never matches ``logos`` (Greek).
+   Prefix queries use the bare-token `term*` FTS5 form, per column, with the same fold applied on both sides.
+   The quoted form `"term"*` does not parse as a prefix query and silently matches nothing.
+5. UNINDEXED-column filters (layer, edition) are applied OUTSIDE the FTS MATCH subquery, on plain columns.
+   Filtering on UNINDEXED columns inside the FTS query silently discards all rows on some builds for
+   multi-column prefix queries (verified on this platform's SQLite 3.40.1).
+6. FTS5 tables are maintained in the same database file as the data they index.
+7. Index maintenance is transactional with the write that changes the indexed content.
+8. Search results always carry epistemic layer information.
+9. Search results identify the edition or dataset they came from.
+10. A search never silently merges layers. Layer filtering is a first-class parameter.
+11. FTS5 is the baseline tier; semantic retrieval (ADR-0006) is optional and complementary, never substitutive.
+12. Where an external-content FTS5 table is used, the content table is authoritative and the index is
     reconstructible from it.
 
 ## Rationale
 
 1. **No synchronisation problem.** Index and data are one transactional store.
-2. **Diacritic folding without text mutation.** `remove_diacritics 2` gives accent-insensitive matching while the
-   stored text stays exact. This is precisely the requirement.
+2. **Diacritic folding without text mutation.** The explicit folded column gives accent-insensitive
+   matching over Greek, Hebrew and Latin while the stored text stays exact. This is precisely the
+   requirement. FTS5's built-in folding covers only Latin; the explicit column covers the rest.
 3. **In-database.** No second process, no second index format, no second failure mode.
 4. **Verified available.** Confirmed by probe, not assumed.
 5. **Ranking built in.** `bm25()` ranking is available without additional machinery.
@@ -70,7 +84,8 @@ Specifically:
 
 ### Positive
 
-- Accent-insensitive search over polytonic Greek and pointed Hebrew without altering stored text.
+- Accent-insensitive search over polytonic Greek, pointed Hebrew and accented Latin without altering
+  stored text — verified by execution against Greek, Hebrew and Latin fixtures.
 - One transactional store; no synchronisation problem.
 - `bm25` ranking, phrase queries, and prefix queries available.
 - No additional dependency or process.
@@ -84,6 +99,10 @@ Specifically:
 - No built-in fuzzy matching. Mitigated: revisit with a trigram complement if required.
 - Hebrew morphology (prefixes and suffixes) is not handled by tokenization. Mitigated: morphological datasets
   provide segmented forms, indexed as separate fields.
+- Two indexed columns roughly double the index footprint for text. Accepted at this scale.
+- Greek final sigma (U+03C2) is normalised to medial sigma (U+03C3) in the folded column — the same transform
+  is applied to queries, so the operation is symmetric and lossless for matching. The stored text is
+  untouched.
 
 ### Neutral
 
@@ -126,4 +145,5 @@ ADR-0001, ADR-0002, ADR-0006, BKB-ARCH-001, BKB-DATA-001
 
 | Date | Change |
 |---|---|
+| M0 (recovery) | Corrected: `remove_diacritics 2` verified to fold Latin only; explicit folded column and union matching adopted; prefix-query shape corrected to bare-token `term*`; UNINDEXED-column filter hazard documented. Accepted. |
 | M0 | Initial. Accepted. |
