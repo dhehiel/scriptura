@@ -18,6 +18,10 @@
 
 -- ---------------------------------------------------------------- governance ----
 
+-- The migration ledger is created by the migration runner itself
+-- (storage/migrations.py ensure_ledger), not by any migration file. A migration
+-- must never create governance tables; it creates domain tables only.
+
 CREATE TABLE IF NOT EXISTS licences (
     id                        TEXT PRIMARY KEY,
     name                      TEXT NOT NULL,
