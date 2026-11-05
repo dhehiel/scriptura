@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/verification/verification-result.schema.json",
+  "title": "Scriptura Verification Check Result",
+  "description": "The result of one verification check over a claim and its evidence chain. Normative source: BKB-VERIFY-001 section 7. A check that cannot decide must report uncheckable; it must not guess and must not silently pass.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "check_id", "check_version", "claim_id", "passed", "severity",
+    "details", "ran_at", "code_version"
+  ],
+  "properties": {
+    "check_id": {"type": "string", "minLength": 1},
+    "check_version": {"type": "string", "minLength": 1},
+    "claim_id": {"type": "string", "minLength": 1},
+    "passed": {
+      "type": "boolean",
+      "description": "A false result is not a deletion. Refuted claims are retained."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "warning", "error", "blocking"]
+    },
+    "details": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What was checked."
+    },
+    "uncheckable": {
+      "type": ["string", "null"],
+      "description": "What could not be checked, and why. Mandatory in substance where the check could not decide."
+    },
+    "ran_at": {"type": "string", "minLength": 1},
+    "code_version": {"type": "string", "minLength": 1}
+  }
+}

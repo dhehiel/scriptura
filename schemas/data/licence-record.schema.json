@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/data/licence-record.schema.json",
+  "title": "Scriptura Licence Record",
+  "description": "The authoritative licence record for a corpus source. Normative source: .clinerules/050-data-licensing.md and ADR-0010. Drives the ingestion licence gate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "licence_id", "applies_to", "licence", "verification_status",
+    "evidence_kind", "derivatives_permitted", "commercial_use_permitted",
+    "share_alike", "attribution_required", "notes"
+  ],
+  "properties": {
+    "licence_id": {
+      "type": "string",
+      "pattern": "^lic-[a-z0-9][a-z0-9-]*$"
+    },
+    "applies_to": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Source registry identifiers this licence record governs. Must be non-empty."
+    },
+    "licence": {
+      "type": ["string", "null"],
+      "description": "The licence exactly as written, including version. Never upgraded, never downgraded by assumption."
+    },
+    "rights_holder": {"type": ["string", "null"]},
+    "licence_url": {"type": ["string", "null"]},
+    "retrieved_at": {"type": ["string", "null"]},
+    "evidence_kind": {"type": "string", "enum": ["primary", "secondary", "none"]},
+    "evidence_quote": {"type": ["string", "null"]},
+    "verification_status": {
+      "type": "string",
+      "enum": ["verified", "unverified", "disputed", "restricted", "absent", "not_required"]
+    },
+    "derivatives_permitted": {"type": ["boolean", "null"]},
+    "commercial_use_permitted": {"type": ["boolean", "null"]},
+    "share_alike": {
+      "type": ["boolean", "null"],
+      "description": "Where true, Scriptura derivatives inherit this licence and are NOT relicensed under Apache 2.0."
+    },
+    "share_alike_consequence": {
+      "type": ["string", "null"],
+      "description": "What share-alike obliges Scriptura to do. Mandatory in substance where share_alike is true."
+    },
+    "non_commercial_quarantine": {
+      "type": ["boolean", "null"],
+      "description": "Where commercial_use_permitted is false, the dataset and its derivatives are quarantined from commercial distribution."
+    },
+    "attribution_required": {"type": ["boolean", "null"]},
+    "attribution_text": {
+      "type": ["string", "null"],
+      "description": "Verbatim. Reproduced exactly in docs/data/attribution/ATTRIBUTIONS.md and in NOTICE."
+    },
+    "public_domain_basis": {
+      "type": ["string", "null"],
+      "description": "Where the licence is a public-domain status: the basis, and any jurisdictional caveat."
+    },
+    "licensing_model": {
+      "type": "string",
+      "enum": ["single", "per_item", "layered", "unknown"]
+    },
+    "layer_split": {
+      "type": ["string", "null"],
+      "description": "Where licensing_model is 'layered': which component carries which licence."
+    },
+    "notes": {"type": "string", "minLength": 1},
+    "verification_required": {"type": "array", "items": {"type": "string"}}
+  }
+}

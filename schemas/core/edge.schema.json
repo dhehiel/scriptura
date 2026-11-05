@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/core/edge.schema.json",
+  "title": "Scriptura Knowledge Graph Edge",
+  "description": "A typed graph edge. Normative source: BKB-DATA-001 section 6.5 and ADR-0007. Every edge carries a layer and provenance. A link proposed by a discovery strategy is always ai_hypothesis.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "source_node_id", "target_node_id", "relation", "layer", "non_authoritative", "provenance"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "source_node_id": {"type": "string", "minLength": 1},
+    "target_node_id": {"type": "string", "minLength": 1},
+    "relation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Drawn from a registered vocabulary. An unregistered relation is rejected."
+    },
+    "layer": {"$ref": "epistemic-layer.schema.json"},
+    "non_authoritative": {
+      "type": "boolean",
+      "description": "Always true where layer is ai_hypothesis."
+    },
+    "confidence": {"type": ["number", "null"]},
+    "payload": {"type": ["object", "null"], "additionalProperties": true},
+    "provenance": {"$ref": "provenance.schema.json"}
+  }
+}

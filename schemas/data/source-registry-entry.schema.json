@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/data/source-registry-entry.schema.json",
+  "title": "Scriptura Dataset Source Registry Entry",
+  "description": "One candidate or approved corpus source. Normative source: BKB-CORPUS-001 sections 3 and 4, and .clinerules/050-data-licensing.md. INGESTIBLE IS A DERIVED PROPERTY: ingestible may be true only where verification_status is 'verified'. This cross-field invariant is enforced by tools/check_licences.py and src/scriptura/provenance/licensing.py, not by this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_id",
+    "name",
+    "category",
+    "availability",
+    "licence",
+    "evidence_kind",
+    "verification_status",
+    "licence_cleared",
+    "ingestible",
+    "licensing_model",
+    "notes"
+  ],
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "pattern": "^src-[a-z0-9][a-z0-9-]*$",
+      "description": "Stable identifier. Never reused."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "edition": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Exactly which edition, version or release. 'The Greek NT' is not a dataset."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "scripture_text",
+        "translation",
+        "lexicon",
+        "morphology",
+        "ancient_text",
+        "commentary",
+        "reference_data",
+        "aggregator",
+        "other"
+      ]
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rights_holder": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Who owns the rights, as stated by the rights holder. Never inferred."
+    },
+    "availability": {
+      "type": "string",
+      "enum": [
+        "open_download",
+        "registration_required",
+        "request_required",
+        "paywalled",
+        "unknown",
+        "unavailable"
+      ],
+      "description": "Verified availability. Never assumed. 'unknown' means availability was not verified."
+    },
+    "licence": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The licence exactly as written, including version. null means no licence was established."
+    },
+    "licence_url": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The URL actually consulted. Must be a primary source for verification_status 'verified'."
+    },
+    "retrieved_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "When the licence was actually read. ISO 8601 date."
+    },
+    "evidence_kind": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary",
+        "none"
+      ],
+      "description": "primary = the rights holder's own statement. secondary = an aggregator, catalogue or mirror. A secondary source never establishes rights."
+    },
+    "evidence_quote": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Verbatim quotation of the licence statement actually found."
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "verified",
+        "unverified",
+        "disputed",
+        "restricted",
+        "absent",
+        "not_required"
+      ],
+      "description": "Only 'verified' permits ingestion. See .clinerules/050-data-licensing.md section 5."
+    },
+    "licence_cleared": {
+      "type": "boolean",
+      "description": "True only where verification_status is 'verified' AND the licence was confirmed against a primary source. Records that licence research is complete. This is NOT permission to ingest: ingestion additionally requires an open milestone gate and per-dataset human authorisation (BKB-CORPUS-001 G9, G10)."
+    },
+    "ingestible": {
+      "type": "boolean",
+      "description": "True only where licence_cleared is true AND the milestone ingestion gate is open AND a human has authorised ingestion of this specific dataset. At M0 the gate is CLOSED, so ingestible is false for every entry. Enforced by tools/check_licences.py and src/scriptura/provenance/licensing.py."
+    },
+    "derivatives_permitted": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "commercial_use_permitted": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "share_alike": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "attribution_required": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "attribution_text": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The verbatim attribution string required by the licence. Never paraphrased."
+    },
+    "licensing_model": {
+      "type": "string",
+      "enum": [
+        "single",
+        "per_item",
+        "layered",
+        "unknown"
+      ],
+      "description": "single = one licence for the whole source. per_item = each item licensed separately, so an aggregator licence establishes nothing. layered = the underlying text and the added annotation carry different licences. unknown = not established."
+    },
+    "canonical_url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "citation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Preferred citation, copied from the source. Never constructed."
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Mandatory. Records what was verified, what was not, and any jurisdictional or composite-licensing caveat."
+    },
+    "verification_required": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "What must be verified before this source may become ingestible."
+    },
+    "target_milestone": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

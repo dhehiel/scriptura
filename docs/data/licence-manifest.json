@@ -1,0 +1,256 @@
+{
+  "manifest_version": "1.0.0",
+  "milestone": "M0",
+  "generated_at": "2026-11-05",
+  "schema": "schemas/data/licence-record.schema.json",
+  "policy": "This manifest is the authoritative machine-readable licence record for Scriptura. It drives the ingestion licence gate implemented in src/scriptura/provenance/licensing.py. It records Scriptura's OWN code and documentation licence separately from third-party corpus data licences; conflating the two tiers is a compliance error.",
+  "project_licence": {
+    "tier": "Scriptura's own code, specifications, schemas and documentation",
+    "licence": "Apache-2.0",
+    "licence_url": "https://www.apache.org/licenses/LICENSE-2.0",
+    "notice_file": "NOTICE",
+    "notes": "Covers only material authored by the Scriptura project. It does NOT and cannot cover ingested third-party corpus data, which is governed per dataset by its own rights holder."
+  },
+  "corpus_data_present": false,
+  "corpus_data_note": "NO third-party corpus data is present in this repository at M0. Nothing has been downloaded, vendored, committed or derived. Machine-checked by tools/check_repo.py and tests/test_repo_hygiene.py.",
+  "licences": [
+    {
+      "licence_id": "lic-cc-by-4-0-sblgnt",
+      "applies_to": [
+        "src-sblgnt"
+      ],
+      "licence": "CC BY 4.0",
+      "rights_holder": "Faithlife / Logos Bible Software (per licence page footer)",
+      "licence_url": "https://www.sblgnt.com/license/",
+      "retrieved_at": "2026-11-05",
+      "evidence_kind": "primary",
+      "evidence_quote": "Creative Commons Attribution 4.0 International Public License",
+      "verification_status": "verified",
+      "derivatives_permitted": true,
+      "commercial_use_permitted": true,
+      "share_alike": false,
+      "share_alike_consequence": null,
+      "non_commercial_quarantine": false,
+      "attribution_required": true,
+      "attribution_text": null,
+      "public_domain_basis": null,
+      "licensing_model": "single",
+      "layer_split": null,
+      "notes": "CC BY 4.0 is permissive: reproduction, sharing and adaptation are permitted for any purpose including commercial, subject to attribution. The licence text also notes the licensor may offer the material under separate terms or stop distributing it, without terminating the licence already granted. Exact attribution wording must be confirmed with the rights holder before redistribution.",
+      "verification_required": [
+        "Confirm the exact attribution wording expected by the rights holder."
+      ]
+    },
+    {
+      "licence_id": "lic-cc-by-4-0-oshb",
+      "applies_to": [
+        "src-oshb"
+      ],
+      "licence": "CC BY 4.0",
+      "rights_holder": "Open Scriptures",
+      "licence_url": "https://raw.githubusercontent.com/openscriptures/morphhb/master/LICENSE.md",
+      "retrieved_at": "2026-11-05",
+      "evidence_kind": "primary",
+      "evidence_quote": "You must attribute the work as follows: \"Original work of the Open Scriptures Hebrew Bible available at https://github.com/openscriptures/morphhb\"",
+      "verification_status": "verified",
+      "derivatives_permitted": true,
+      "commercial_use_permitted": true,
+      "share_alike": false,
+      "share_alike_consequence": null,
+      "non_commercial_quarantine": false,
+      "attribution_required": true,
+      "attribution_text": "Original work of the Open Scriptures Hebrew Bible available at https://github.com/openscriptures/morphhb",
+      "public_domain_basis": null,
+      "licensing_model": "single",
+      "layer_split": null,
+      "notes": "Permissive with a mandatory verbatim attribution string. The licence file also notes that compliance is not required for elements already in the public domain, and that the licence may not grant all permissions necessary for an intended use.",
+      "verification_required": []
+    },
+    {
+      "licence_id": "lic-public-domain-berean",
+      "applies_to": [
+        "src-bsb"
+      ],
+      "licence": "Public domain (dedication dated 2023-04-30)",
+      "rights_holder": "Bible Hub / Berean Bible Translation Committee",
+      "licence_url": "https://berean.bible/terms.htm",
+      "retrieved_at": "2026-11-05",
+      "evidence_kind": "primary",
+      "evidence_quote": "officially dedicated to the public domain as of April 30, 2023. All uses are freely permitted.",
+      "verification_status": "verified",
+      "derivatives_permitted": true,
+      "commercial_use_permitted": true,
+      "share_alike": false,
+      "share_alike_consequence": null,
+      "non_commercial_quarantine": false,
+      "attribution_required": false,
+      "attribution_text": "The Holy Bible, Berean Standard Bible, BSB is produced in cooperation with Bible Hub, Discovery Bible, OpenBible.com, and the Berean Bible Translation Committee. This text of God's Word has been dedicated to the public domain.",
+      "public_domain_basis": "Explicit dedication by the rights holder, dated 2023-04-30, stated on the rights holder's own terms page. This is a dedication, not an expiry of term. No jurisdictional caveat was stated by the rights holder.",
+      "licensing_model": "single",
+      "layer_split": null,
+      "notes": "An explicit public-domain dedication by the rights holder is the strongest available basis and does not depend on term-expiry analysis. Attribution is not required but the string is recorded so that Scriptura can attribute voluntarily. The request not to use the Berean name for texts that vary from the official text is honoured as a matter of good practice.",
+      "verification_required": []
+    },
+    {
+      "licence_id": "lic-cc-by-nc-4-0-etcbc",
+      "applies_to": [
+        "src-etcbc-bhsa"
+      ],
+      "licence": "CC BY-NC 4.0",
+      "rights_holder": "Eep Talstra Centre for Bible and Computer, VU University Amsterdam",
+      "licence_url": "https://github.com/ETCBC/bhsa/blob/master/README.md",
+      "retrieved_at": "2026-11-05",
+      "evidence_kind": "primary",
+      "evidence_quote": "do not use the data for commercial applications without consent; for any commercial use, please contact the German Bible Society",
+      "verification_status": "verified",
+      "derivatives_permitted": true,
+      "commercial_use_permitted": false,
+      "share_alike": false,
+      "share_alike_consequence": null,
+      "non_commercial_quarantine": true,
+      "attribution_required": true,
+      "attribution_text": "Cite the persistent identifier 10.17026/dans-z6y-skyh",
+      "public_domain_basis": null,
+      "licensing_model": "single",
+      "layer_split": "The ETCBC annotation is licensed CC BY-NC 4.0 by the ETCBC. The README's direction to contact the German Bible Society for commercial use indicates separate underlying rights in the BHS text. Both must be respected.",
+      "notes": "QUARANTINE REQUIRED. This dataset and any Scriptura derivative of it must be marked commercial_use_permitted=false and excluded from any commercial distribution channel. Mixing this material into a permissively-licensed Scriptura data product is prohibited by .clinerules/050-data-licensing.md section 6.",
+      "verification_required": []
+    },
+    {
+      "licence_id": "lic-layered-morphgnt",
+      "applies_to": [
+        "src-morphgnt-sblgnt"
+      ],
+      "licence": "Layered: annotation CC-BY-SA (version not stated); underlying SBLGNT text per SBLGNT terms",
+      "rights_holder": "MorphGNT project; underlying text per the SBLGNT rights holder",
+      "licence_url": "https://github.com/morphgnt/sblgnt/blob/master/README.md",
+      "retrieved_at": "2026-11-05",
+      "evidence_kind": "primary",
+      "evidence_quote": "The SBLGNT text itself is subject to the SBLGNT EULA and the morphological parsing and lemmatization is made available under a CC-BY-SA License.",
+      "verification_status": "disputed",
+      "derivatives_permitted": true,
+      "commercial_use_permitted": null,
+      "share_alike": true,
+      "share_alike_consequence": "If CC BY-SA applies to the annotation, Scriptura derivatives of the annotation inherit that licence and are NOT relicensed under Apache 2.0. The inherited licence must be recorded on every derived record.",
+      "non_commercial_quarantine": null,
+      "attribution_required": true,
+      "attribution_text": "Tauber, J. K., ed. (2017) MorphGNT: SBLGNT Edition. Version 6.12 [Data set]. https://github.com/morphgnt/sblgnt DOI: 10.5281/zenodo.376200",
+      "public_domain_basis": null,
+      "licensing_model": "layered",
+      "layer_split": "Annotation (morphological parsing and lemmatization): CC-BY-SA, version unstated. Underlying text: SBLGNT terms, described as an 'EULA' in the README and as CC BY 4.0 on the SBLGNT licence page.",
+      "notes": "Recorded as 'disputed', not 'verified', because the share-alike version is unstated and two sources describe the underlying text licence differently. Under .clinerules/050-data-licensing.md section 5, 'disputed' blocks ingestion. This entry exists to record the discrepancy so it is resolved rather than guessed.",
+      "verification_required": [
+        "Establish the CC BY-SA version for the annotation.",
+        "Reconcile the two descriptions of the underlying text licence."
+      ]
+    },
+    {
+      "licence_id": "lic-cc-by-4-0-stepbible",
+      "applies_to": [
+        "src-stepbible-data"
+      ],
+      "licence": "CC BY 4.0",
+      "rights_holder": "STEP Bible (CIO UK #1193950); data created initially by Tyndale House Cambridge",
+      "licence_url": "https://raw.githubusercontent.com/STEPBible/STEPBible-Data/master/README.md",
+      "retrieved_at": "2026-11-05",
+      "evidence_kind": "primary",
+      "evidence_quote": "Credit it to \"STEP Bible\" linked to www.STEPBible.org",
+      "verification_status": "verified",
+      "derivatives_permitted": true,
+      "commercial_use_permitted": true,
+      "share_alike": false,
+      "share_alike_consequence": null,
+      "non_commercial_quarantine": false,
+      "attribution_required": true,
+      "attribution_text": "Credit to \"STEP Bible\" linked to www.STEPBible.org",
+      "public_domain_basis": null,
+      "licensing_model": "single",
+      "layer_split": null,
+      "notes": "Permissive with attribution. The README also asks that changes be recorded and made available to subsequent users, and that mirrors link back to the repository. Those are requests accompanying the licence; Scriptura will honour them. The licence does not extend to third-party Bible translations embedded in some datasets.",
+      "verification_required": []
+    },
+    {
+      "licence_id": "lic-per-item-sefaria",
+      "applies_to": [
+        "src-sefaria-export"
+      ],
+      "licence": null,
+      "rights_holder": "Per text",
+      "licence_url": "https://raw.githubusercontent.com/Sefaria/Sefaria-Export/master/LICENSE.md",
+      "retrieved_at": "2026-11-05",
+      "evidence_kind": "primary",
+      "evidence_quote": "Each text is licensed separately, so there is no overall license for this repository.",
+      "verification_status": "unverified",
+      "derivatives_permitted": null,
+      "commercial_use_permitted": null,
+      "share_alike": null,
+      "share_alike_consequence": null,
+      "non_commercial_quarantine": null,
+      "attribution_required": null,
+      "attribution_text": null,
+      "public_domain_basis": null,
+      "licensing_model": "per_item",
+      "layer_split": null,
+      "notes": "This licence record deliberately records NO licence, because the rights holder states there is none for the collection. It exists to prevent anyone from treating the repository as licensed. Per-item resolution is mandatory.",
+      "verification_required": [
+        "Read the `license` field of each individual text before ingestion."
+      ]
+    },
+    {
+      "licence_id": "lic-per-item-ebible",
+      "applies_to": [
+        "src-ebible-org"
+      ],
+      "licence": null,
+      "rights_holder": "Per translation",
+      "licence_url": "https://ebible.org/find/index.php",
+      "retrieved_at": "2026-11-05",
+      "evidence_kind": "primary",
+      "evidence_quote": "Listings with a gray background may not be redistributed without permission of the copyright owner.",
+      "verification_status": "unverified",
+      "derivatives_permitted": null,
+      "commercial_use_permitted": null,
+      "share_alike": null,
+      "share_alike_consequence": null,
+      "non_commercial_quarantine": null,
+      "attribution_required": null,
+      "attribution_text": null,
+      "public_domain_basis": null,
+      "licensing_model": "per_item",
+      "layer_split": null,
+      "notes": "Records no licence, because none applies to the collection. Note that 'freely redistributable' here may still carry a non-commercial restriction, so freely redistributable does not imply permissive.",
+      "verification_required": [
+        "Read each translation's own copyright page before ingestion."
+      ]
+    },
+    {
+      "licence_id": "lic-restricted-perseus",
+      "applies_to": [
+        "src-perseus-hopper"
+      ],
+      "licence": null,
+      "rights_holder": "Tufts University (overall); varying per material",
+      "licence_url": "https://www.perseus.tufts.edu/hopper/help/copyright",
+      "retrieved_at": "2026-11-05",
+      "evidence_kind": "primary",
+      "evidence_quote": "Any commercial use or publication without authorization is strictly prohibited.",
+      "verification_status": "restricted",
+      "derivatives_permitted": null,
+      "commercial_use_permitted": false,
+      "share_alike": null,
+      "share_alike_consequence": null,
+      "non_commercial_quarantine": true,
+      "attribution_required": null,
+      "attribution_text": null,
+      "public_domain_basis": null,
+      "licensing_model": "per_item",
+      "layer_split": null,
+      "notes": "'restricted' means the licence was confirmed and prohibits the intended use. Scriptura's intended use is redistribution of ingested text, which this source prohibits without authorisation. Not ingestible. A future ADR could propose a link-only integration that references Perseus URLs without copying text, which the copyright page explicitly welcomes.",
+      "verification_required": [
+        "Contact the Perseus project about any specific component before use."
+      ]
+    }
+  ],
+  "datasets": [],
+  "datasets_note": "EMPTY BY DESIGN. No dataset has been authorised or ingested. A dataset entry appears here only when the licence gate permits, the milestone gate is open, and a human has authorised ingestion of that specific dataset. Schema: schemas/data/dataset-manifest.schema.json."
+}

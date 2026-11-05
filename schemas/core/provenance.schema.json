@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/core/provenance.schema.json",
+  "title": "Scriptura Provenance",
+  "description": "Provenance for a persisted record. Normative source: BKB-DATA-001 section 4. No orphan records: source_uri, source_kind, content_hash, actor and created_at are mandatory.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_uri", "source_kind", "content_hash", "actor", "created_at"],
+  "properties": {
+    "source_uri": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Resolvable locator: URL, DOI, edition plus reference, or dataset plus record identifier."
+    },
+    "source_kind": {
+      "type": "string",
+      "enum": ["primary", "secondary", "derived", "generated"]
+    },
+    "retrieved_at": {
+      "type": ["string", "null"],
+      "description": "When the source was consulted. ISO 8601 UTC."
+    },
+    "content_hash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Cryptographic digest of the content as retrieved, prefixed with the algorithm."
+    },
+    "dataset_id": {
+      "type": ["string", "null"]
+    },
+    "licence_id": {
+      "type": ["string", "null"],
+      "description": "The licence record governing the source."
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who or what created the record."
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ISO 8601 UTC."
+    },
+    "supersedes": {
+      "type": ["string", "null"],
+      "description": "Identifier of the record this one supersedes. Provenance is append-only."
+    },
+    "normalisation_form": {
+      "type": ["string", "null"],
+      "description": "Unicode normalisation form of the stored text. Mandatory for original-language text."
+    }
+  }
+}

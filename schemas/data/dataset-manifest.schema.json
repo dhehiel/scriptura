@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/data/dataset-manifest.schema.json",
+  "title": "Scriptura Dataset Manifest",
+  "description": "The committed, metadata-only record of an ingestion. Normative source: BKB-CORPUS-001 section 12. A manifest NEVER contains corpus text. No manifest exists at M0 because no dataset has been ingested.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dataset_id", "name", "edition", "version", "licence_id", "verification_status",
+    "source_uri", "retrieved_at", "content_hash", "byte_length", "record_count",
+    "rejected_count", "adapter", "adapter_version", "commercial_use_permitted",
+    "authorised_by", "authorised_at", "ingestion_run_id"
+  ],
+  "properties": {
+    "dataset_id": {"type": "string", "minLength": 1},
+    "name": {"type": "string", "minLength": 1},
+    "edition": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "minLength": 1},
+    "licence_id": {"type": "string", "minLength": 1},
+    "verification_status": {
+      "type": "string",
+      "enum": ["verified"],
+      "description": "A manifest may exist only for a verified dataset. Any other value is a compliance defect."
+    },
+    "source_uri": {"type": "string", "minLength": 1},
+    "retrieved_at": {"type": "string", "minLength": 1},
+    "content_hash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "SHA-256 of the bytes as retrieved."
+    },
+    "byte_length": {"type": "integer"},
+    "record_count": {"type": "integer"},
+    "rejected_count": {"type": "integer"},
+    "adapter": {"type": "string", "minLength": 1},
+    "adapter_version": {"type": "string", "minLength": 1},
+    "normalisation_form": {"type": ["string", "null"]},
+    "attribution": {
+      "type": ["string", "null"],
+      "description": "Verbatim attribution string where the licence requires one."
+    },
+    "derivative_of": {"type": ["string", "null"]},
+    "share_alike_inherited": {"type": ["boolean", "null"]},
+    "commercial_use_permitted": {"type": "boolean"},
+    "authorised_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The human who authorised ingestion of this dataset, individually."
+    },
+    "authorised_at": {"type": "string", "minLength": 1},
+    "ingestion_run_id": {"type": "string", "minLength": 1},
+    "supersedes": {"type": ["string", "null"]}
+  }
+}

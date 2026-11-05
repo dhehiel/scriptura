@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/agents/agent-run.schema.json",
+  "title": "Scriptura Agent Run Record",
+  "description": "An append-only record of one agent run. Normative source: BKB-AGENTS-001 section 8. No run record exists at M0 because no agent executes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id", "agent_id", "agent_spec_version", "started_at", "status",
+    "scope", "model", "records_created", "records_rejected"
+  ],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "agent_id": {"type": "string", "minLength": 1},
+    "agent_spec_version": {"type": "string", "minLength": 1},
+    "started_at": {"type": "string", "minLength": 1},
+    "finished_at": {"type": ["string", "null"]},
+    "status": {
+      "type": "string",
+      "enum": ["completed", "failed", "cancelled", "halted"]
+    },
+    "scope": {"type": "array", "items": {"type": "string"}},
+    "inputs": {"type": "array", "items": {"type": "string"}},
+    "outputs": {"type": "array", "items": {"type": "string"}},
+    "model": {"type": "string", "minLength": 1},
+    "method_hash": {"type": ["string", "null"]},
+    "records_created": {"type": "integer"},
+    "records_rejected": {"type": "integer"},
+    "limits_consumed": {"type": ["object", "null"], "additionalProperties": true},
+    "human_review": {"type": ["object", "null"], "additionalProperties": true},
+    "failure_reason": {"type": ["string", "null"]},
+    "verification_results": {"type": "array", "items": {"type": "string"}}
+  }
+}

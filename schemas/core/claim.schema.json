@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/core/claim.schema.json",
+  "title": "Scriptura Claim",
+  "description": "A claim-bearing record. Normative source: BKB-DATA-001 sections 2 and 9. Layer, provenance and non_authoritative are always present. There is no default layer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "layer", "non_authoritative", "statement", "provenance"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "layer": {"$ref": "epistemic-layer.schema.json"},
+    "non_authoritative": {
+      "type": "boolean",
+      "description": "Mandatory. Always true for ai_hypothesis. Never omitted at any presentation boundary."
+    },
+    "statement": {"type": "string", "minLength": 1},
+    "reference": {"$ref": "reference.schema.json"},
+    "provenance": {"$ref": "provenance.schema.json"},
+    "licence_id": {"type": ["string", "null"]},
+    "confidence": {
+      "type": ["number", "null"],
+      "description": "Mandatory on derived claims. In [0,1]. Derived from the evidence chain, never asserted."
+    },
+    "verification_state": {
+      "type": ["string", "null"],
+      "enum": ["unverified", "weakly_supported", "supported", "contested", "refuted", "unknown", "out_of_scope", null],
+      "description": "Normative source: BKB-VERIFY-001 section 3. Default is unverified."
+    },
+    "layer_fields": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Per-layer required fields. See BKB-DATA-001 section 2.2. Validated per layer by the application and by SQL CHECK constraints."
+    }
+  }
+}

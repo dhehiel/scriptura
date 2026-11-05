@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/agents/agent-spec.schema.json",
+  "title": "Scriptura Research Agent Specification",
+  "description": "A declarative agent specification. Normative source: BKB-AGENTS-001 section 4. NO AGENT EXECUTES AT M0. Capabilities are deny-by-default; output_layer may only ever be ai_hypothesis. An agent without human_review_points or limits cannot be approved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "agent_id", "name", "description", "purpose", "status", "capabilities",
+    "scope", "input_layers", "output_layer", "evidence_obligations", "limits",
+    "human_review_points", "failure_behaviour", "audit", "owner"
+  ],
+  "properties": {
+    "agent_id": {"type": "string", "minLength": 1},
+    "name": {"type": "string", "minLength": 1},
+    "description": {"type": "string", "minLength": 1},
+    "purpose": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The research question the agent serves."
+    },
+    "spec_version": {"type": ["string", "null"]},
+    "status": {
+      "type": "string",
+      "enum": ["proposed", "approved", "disabled"],
+      "description": "Nothing runs unless approved. At M0 no specification may be approved for execution."
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "read_corpus", "read_graph", "read_registries", "query_fts",
+          "query_semantic_backend", "write_ai_hypothesis"
+        ],
+        "description": "The grantable set only. Capabilities outside this set are NOT GRANTABLE by any specification, approval or configuration. See BKB-AGENTS-001 section 5."
+      }
+    },
+    "scope": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Enumerated and bounded. 'The whole corpus' is not a scope."
+    },
+    "input_layers": {
+      "type": "array",
+      "items": {"$ref": "../core/epistemic-layer.schema.json"}
+    },
+    "output_layer": {
+      "type": "string",
+      "enum": ["ai_hypothesis"],
+      "description": "Only ai_hypothesis is grantable. No other value may appear."
+    },
+    "evidence_obligations": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "What the agent must produce for its output to be admissible. See BKB-AGENTS-001 section 6."
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_records", "max_iterations"],
+      "properties": {
+        "max_records": {"type": "integer"},
+        "max_iterations": {"type": "integer"},
+        "max_traversal_depth": {"type": ["integer", "null"]},
+        "max_wall_seconds": {"type": ["integer", "null"]},
+        "max_storage_bytes": {"type": ["integer", "null"]}
+      }
+    },
+    "human_review_points": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Where a human must intervene. An empty list means the specification cannot be approved."
+    },
+    "failure_behaviour": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Must be fail-closed. See BKB-AGENTS-001 section 11."
+    },
+    "audit": {"type": "string", "minLength": 1},
+    "owner": {"type": "string", "minLength": 1},
+    "approved_by": {"type": ["string", "null"]},
+    "approved_at": {"type": ["string", "null"]},
+    "disable_conditions": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scriptura.example/schemas/core/evidence.schema.json",
+  "title": "Scriptura Evidence Chain Link",
+  "description": "One link in an evidence chain. Normative source: BKB-VERIFY-001 section 4. Every link must be individually resolvable by a third party. Chains are append-only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["link_id", "evidence_id", "layer", "relation", "source_uri", "source_kind", "content_hash", "consulted_at"],
+  "properties": {
+    "link_id": {"type": "string", "minLength": 1},
+    "evidence_id": {"type": "string", "minLength": 1},
+    "layer": {"$ref": "epistemic-layer.schema.json"},
+    "relation": {
+      "type": "string",
+      "enum": ["supports", "contradicts", "qualifies", "contextualises"],
+      "description": "How this evidence bears on the claim. A chain omitting known contradicting evidence is incomplete."
+    },
+    "weight": {
+      "type": ["number", "null"],
+      "description": "Optional and derived. Never asserted."
+    },
+    "source_uri": {"type": "string", "minLength": 1},
+    "source_kind": {"type": "string", "enum": ["primary", "secondary"]},
+    "content_hash": {"type": "string", "minLength": 1},
+    "consulted_at": {"type": "string", "minLength": 1},
+    "claim_id": {"type": ["string", "null"]}
+  }
+}

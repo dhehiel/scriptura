@@ -1,0 +1,44 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+dist/
+build/
+# --- pytest / coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+# --- SQLite working databases (local working copies only; never committed) ---
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+# --- Corpus data: NEVER committed at any milestone ---
+# Landing zones stay in the tree via .gitkeep; all content is ignored.
+datasets/raw/*
+!datasets/raw/.gitkeep
+datasets/interim/*
+!datasets/interim/.gitkeep
+datasets/processed/*
+!datasets/processed/.gitkeep
+datasets/third_party/*
+!datasets/third_party/.gitkeep
+# --- Agent run artefacts (gitignored by design; see BKB-AGENTS-001 section 8) ---
+agents/runs/*
+!agents/runs/.gitkeep
+# --- Local scratch ---
+tmp/
+# --- Editors / OS ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~

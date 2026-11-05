@@ -1,0 +1,170 @@
+Scriptura
+Copyright 2026 The Scriptura Authors
+
+This product includes software developed as part of the Scriptura project,
+an open Biblical Knowledge and Research Infrastructure.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+---------------------------------------------------------------------------
+
+SCOPE OF THIS NOTICE FILE
+
+The Apache License, Version 2.0 requires that redistributions reproduce the
+attribution notices contained in a NOTICE file. This file is the single
+authoritative attribution record for the Scriptura codebase.
+
+Two distinct categories of material are covered, and they are governed by
+different rules. They must never be conflated.
+
+---------------------------------------------------------------------------
+
+1. SCRIPTURA SOURCE CODE AND SPECIFICATIONS
+
+Copyright 2026 The Scriptura Authors.
+
+This category covers everything authored by the project itself:
+
+  * Python source code under src/scriptura/
+  * Tests under tests/ and evaluation/
+  * Tooling under tools/
+  * Architecture specifications under docs/architecture/
+  * Architecture Decision Records under docs/architecture/ADR/
+  * JSON Schema definitions under schemas/
+  * Project governance documents (.clinerules/, CONTRIBUTING.md, SECURITY.md,
+    AGENTS.md, GOVERNANCE.md, CODE_OF_CONDUCT.md)
+  * Documentation under docs/ that the project itself wrote
+
+All of this material is licensed under the Apache License, Version 2.0.
+Individual contributions remain the copyright of their authors and are
+contributed to the project under the terms described in CONTRIBUTING.md.
+
+---------------------------------------------------------------------------
+
+2. THIRD-PARTY CORPUS DATA AND DATASETS
+
+This category covers scripture texts, ancient source texts, translations,
+lexica, morphological and linguistic annotations, and any other dataset that
+Scriptura ingests from external sources.
+
+As of milestone M0, NO third-party corpus data is present in this repository.
+No datasets have been downloaded, vendored, committed, or derived. This
+statement is machine-checked by tools/check_repo.py and
+tests/test_repo_hygiene.py.
+
+When datasets are added in later milestones, this section MUST be updated to
+record, for each dataset, at minimum:
+
+  * dataset identifier and human-readable name
+  * upstream rights holder and copyright statement
+  * exact licence name and version (or "public domain" with jurisdiction note)
+  * the canonical upstream URL actually used
+  * the retrieval date and the cryptographic hash of the retrieved artefact
+  * the verbatim attribution string required by the licence, if any
+  * whether derivatives and commercial use are permitted
+  * whether the licence is share-alike and what it therefore obliges Scriptura
+    to do
+
+The authoritative machine-readable record for that information is
+docs/data/licence-manifest.json. This NOTICE file carries the human-readable
+attribution strings that the licences require to travel with redistributions.
+
+Licensing for corpus data is dataset-specific. There is no blanket licence for
+"the Bible", for "ancient Near Eastern texts", or for any aggregator platform.
+Several upstream sources that Scriptura intends to evaluate are explicitly
+licensed per item rather than per collection, so an aggregator-level licence
+never suffices. Scriptura must resolve the licence of every individual item
+before that item is ingested.
+
+Where an upstream licence is share-alike (for example CC BY-SA), Scriptura
+derivative datasets inherit that licence and are NOT relicensed under Apache
+2.0. Where an upstream licence is non-commercial (for example CC BY-NC), the
+affected dataset must be quarantined from any commercial distribution channel
+and marked accordingly in the manifest.
+
+---------------------------------------------------------------------------
+
+3. THIRD-PARTY SOFTWARE DEPENDENCIES
+
+As of milestone M0 the Scriptura runtime has ZERO mandatory third-party
+Python dependencies. The package depends only on the Python standard library
+and on SQLite as provided by the platform. This is a deliberate architectural
+decision recorded in docs/architecture/ADR/ADR-0002-stdlib-only-m0-runtime.md.
+
+Optional components, each of which must be explicitly installed by the
+operator and each of which remains governed by its own upstream licence, are:
+
+  * LEANN (PyPI: leann) - optional semantic retrieval adapter, MIT License.
+    Scriptura imports it behind a capability guard and degrades to SQLite FTS5
+    when it is absent. See docs/architecture/BKB-ARCH-001 and
+    src/scriptura/retrieval/leann_adapter.py.
+  * FastAPI (PyPI: fastapi) - optional HTTP surface, MIT License. Adopted only
+    behind an approved Architecture Decision Record. See
+    docs/architecture/ADR/ADR-0004-fastapi-adoption-gate.md.
+  * Development and CI tooling declared in pyproject.toml optional extras
+    (pytest, ruff, mypy). These are development-time only and are not
+    distributed with the runtime package.
+
+When a dependency becomes mandatory, its licence must be recorded here and its
+compatibility with Apache 2.0 must be assessed in an Architecture Decision
+Record before adoption.
+
+
+---------------------------------------------------------------------------
+
+4. TRADEMARKS AND NAMES
+
+Apache License 2.0 Section 6 does not grant permission to use the trade names,
+trademarks, service marks, or product names of contributors, except as required
+for reasonable and customary use in describing the origin of the Work and
+reproducing the content of this NOTICE file.
+
+"Scriptura" is the name of this project. Third-party dataset names, edition
+names, and organisational names referenced anywhere in this repository or in
+derived datasets are the property of their respective rights holders and are
+used here solely for identification and attribution, as required by the
+applicable licences. Such reference implies no endorsement of Scriptura by any
+rights holder, and no endorsement of any rights holder by Scriptura.
+
+---------------------------------------------------------------------------
+
+5. NO WARRANTY AND NO DOCTRINAL ENDORSEMENT
+
+Scriptura is provided on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+ANY KIND, either express or implied, as set out in Sections 7 and 8 of the
+Apache License, Version 2.0.
+
+In addition, and specifically for this domain: Scriptura is research
+infrastructure. It aggregates, structures, cross-references and analyses
+source material. Inclusion of a text, translation, lexicon, commentary,
+annotation, or interpretation in Scriptura does not constitute endorsement of
+its accuracy, authority, canonicity, or doctrinal position by the project or by
+any contributor.
+
+Scriptura deliberately and permanently separates five epistemic layers, and no
+tooling, query, report, or agent output may collapse them:
+
+  * scripture                  - text of a witness, as attested by a named edition
+  * historical_evidence        - material and documentary evidence external to scripture
+  * linguistic_observation     - morphology, syntax, lexicography, philology
+  * theological_interpretation - interpretive positions of named traditions and authors
+  * ai_hypothesis              - machine-generated inference, always flagged as non-authoritative
+
+This separation is normative, not advisory. It is specified in
+docs/architecture/BKB-DATA-001, enforced by src/scriptura/core/layers.py, and
+governed by .clinerules/020-epistemic-layers.md.
+
+---------------------------------------------------------------------------
+
+END OF NOTICE
+
