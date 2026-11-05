@@ -62,16 +62,22 @@ def fold_diacritics(text: str) -> str:
     """Return a diacritic-folded form of *text*, for SEARCH MATCHING ONLY.
 
     Folds Greek polytonic diacritics, Hebrew niqqud and cantillation, and Latin
-    diacritics. Does NOT transliterate or romanize: ``λόγος`` folds to ``λογος``, not
-    to ``logos``. Romanization is a different operation with different semantics and is
-    not performed here.
+    diacritics. Does NOT transliterate or romanize: ``λόγος`` folds to a form
+    without diacritics, not to ``logos``. Romanization is a different operation with
+    different semantics and is not performed here.
+
+    Case is folded in a folding-consistent way: the same transform is applied to
+    indexed text and to queries, so case differences never affect matching, and
+    Greek final sigma (U+03C2) is normalised to medial sigma (U+03C3) so that a
+    word matches regardless of its position in a phrase.
 
     The folded form is used to populate a separate indexed column. The stored text is
     never replaced by it.
     """
     if not isinstance(text, str):
         raise TypeError(f"Expected str, got {type(text).__name__}.")
-    return strip_marks(text).casefold()
+    folded = strip_marks(text).casefold()
+    return folded.replace("ς", "σ")
 
 
 def is_folded(text: str) -> bool:

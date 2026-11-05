@@ -27,6 +27,8 @@ from ..core.text import fold_diacritics
 
 __all__ = [
     "TOKENIZER",
+    "DIACRITIC_MODES",
+    "DiacriticMode",
     "CorpusHit",
     "ClaimHit",
     "FtsIndex",
@@ -118,15 +120,54 @@ def escape_match(term: str) -> str:
     return '"' + stripped.replace('"', '""') + '"'
 
 
+#: How to treat diacritics in a query. ``both`` returns the union of exact and
+#: folded matches. ``exact`` matches only what was literally indexed. ``folded``
+#: matches the NFD-folded form only. The default is ``both``: a query for either
+#: form of a word finds both forms in storage, which is what accent-insensitive
+#: search must do without altering stored text. No romanization is performed:
+#: Greek is matched against Greek, Hebrew against Hebrew, Latin against Latin.
+DiacriticMode = str
+DIACRITIC_MODES = ("both", "exact", "folded")
+
+
+def _validate_diacritic_mode(mode: str) -> str:
+    if mode not in DIACRITIC_MODES:
+        raise SearchError(
+            f"Unknown diacritic mode {mode!r}. Valid modes: "
+            + ", ".join(DIACRITIC_MODES)
+            + "."
+        )
+    return mode
+
+
 def phrase_query(phrase: str) -> str:
     """Build an FTS5 phrase query from *phrase*."""
     return escape_match(phrase)
 
 
 def prefix_query(term: str) -> str:
-    """Build an FTS5 prefix query from *term*."""
-    escaped = escape_match(term)
-    return escaped[:-1] + '*"'
+    """Build an FTS5 prefix query from *term*.
+
+    The term is used AS GIVEN: matching the original column uses the original term,
+    and matching the folded column uses the folded term. Folding is applied by the
+    caller (:meth:`FtsIndex._term`) per column, never here, so that prefix matching
+    compares identical transforms on both sides. Folding affects matching only;
+    stored text is never altered.
+    """
+    # FTS5 prefix syntax is a BARE token with a trailing star: 'term*'. The quoted
+    # phrase form '"term"' matches the whole token only; '"term*"' does NOT parse
+    # as a prefix query (verified on this platform's SQLite: it matches nothing,
+    # silently). Prefix and phrase queries therefore have different shapes.
+    # Appending the star to the UNQUOTED term keeps the query a bare-token prefix.
+    if not isinstance(term, str) or not term.strip():
+        raise SearchError("Prefix term must be a non-empty string.")
+    stripped = term.strip()
+    if any(ch in stripped for ch in '"()*:-^'):
+        raise SearchError(
+            f"Prefix term {stripped!r} contains FTS5 syntax characters. Prefix "
+            f"queries match a single bare token; they cannot embed syntax."
+        )
+    return stripped + "*"
 
 
 class FtsIndex:
@@ -181,7 +222,11 @@ class FtsIndex:
             "insert into corpus_fts(record_id, layer, edition_id, reference_display, "
             "text, text_folded) values (?,?,?,?,?,?)",
             (
-                record_id, resolved.value, edition_id, reference_display, text,
+                record_id,
+                resolved.value,
+                edition_id if edition_id is not None else "",
+                reference_display if reference_display is not None else "",
+                text,
                 fold_diacritics(text),
             ),
         )
@@ -257,6 +302,7 @@ class FtsIndex:
     def search_corpus(
         self, query: str, *, limit: int = 50, layers: Iterable[Any] | None = None,
         edition_id: str | None = None, prefix: bool = False,
+        diacritics: str = "both",
     ) -> tuple[CorpusHit, ...]:
         """Search the corpus index.
 
@@ -270,31 +316,51 @@ class FtsIndex:
                 own layer so the result set is never silently merged.
             edition_id: Restrict to one edition.
             prefix: Match as a prefix rather than a whole token.
+            diacritics: ``both`` (default), ``exact``, or ``folded``. ``both``
+                returns the union of matches on the stored text and on the
+                diacritic-folded text, so a query in either form finds both.
+                Union, never transliteration: Greek matches Greek, Hebrew matches
+                Hebrew. No romanization is performed.
 
         Returns:
-            Hits ordered by BM25 rank.
+            Hits ordered by BM25 rank, deduplicated by record.
         """
         self.require_available()
         if limit < 1:
             raise SearchError(f"limit must be at least 1, got {limit}.")
-        match = prefix_query(query) if prefix else phrase_query(query)
+        _validate_diacritic_mode(diacritics)
+        match = self._corpus_match(query, prefix, diacritics)
 
-        sql = (
-            "select f.record_id, f.layer, f.edition_id, f.reference_display, "
-            "cr.text, bm25(corpus_fts) as rank "
-            "from corpus_fts f left join corpus_records cr on cr.id = f.record_id "
-            "where corpus_fts match ?"
+        # NOTE: record_id, layer, edition_id and reference_display are UNINDEXED
+        # columns. Reading them inside the FTS MATCH query is free, but FILTERING on
+        # them inside the FTS query silently discards ALL rows on some builds
+        # (verified on this platform's SQLite 3.40.1 for prefix queries with an OR
+        # across two columns). The layer and edition filters are therefore applied
+        # OUTSIDE the FTS subquery, on plain columns. This is behaviour-preserving
+        # and cost-free at this scale.
+        inner = (
+            "select record_id, layer, edition_id, reference_display, "
+            "bm25(corpus_fts) as rank from corpus_fts where (corpus_fts match ?)"
+            " order by rank limit ?"
         )
-        params: list[Any] = [match]
+        inner_params: list[Any] = [match, max(1, limit * 3)]
+        where: list[str] = []
         allowed = self._resolve_layers(layers)
         if allowed is not None:
-            sql += f" and f.layer in ({','.join('?' * len(allowed))})"
-            params.extend(allowed)
+            placeholders = ",".join("?" * len(allowed))
+            where.append(f"sub.layer in ({placeholders})")
+            inner_params.extend(allowed)
         if edition_id is not None:
-            sql += " and f.edition_id = ?"
-            params.append(edition_id)
-        sql += " order by rank limit ?"
-        params.append(limit)
+            where.append("sub.edition_id = ?")
+            inner_params.append(edition_id)
+        sql = (
+            "select sub.record_id, sub.layer, sub.edition_id, sub.reference_display, "
+            "cr.text, sub.rank from (" + inner + ") as sub "
+            "left join corpus_records cr on cr.id = sub.record_id "
+            + ("where " + " and ".join(where) if where else "")
+            + " order by sub.rank"
+        )
+        params = inner_params
 
         try:
             rows = self.conn.execute(sql, params).fetchall()
@@ -303,7 +369,7 @@ class FtsIndex:
                 f"FTS5 query failed for {query!r}: {exc}. The term is escaped before "
                 f"use, so this usually indicates a malformed query construct."
             ) from exc
-        return tuple(
+        hits = [
             CorpusHit(
                 record_id=row[0], layer=row[1], edition_id=row[2],
                 reference_display=row[3],
@@ -312,11 +378,13 @@ class FtsIndex:
                 rank=float(row[5]),
             )
             for row in rows
-        )
+        ]
+        return tuple(self._dedupe_corpus(hits)[:limit])
 
     def search_claims(
         self, query: str, *, limit: int = 50, layers: Iterable[Any] | None = None,
         exclude_ai_hypothesis: bool = False, prefix: bool = False,
+        diacritics: str = "both",
     ) -> tuple[ClaimHit, ...]:
         """Search the claim index.
 
@@ -324,40 +392,113 @@ class FtsIndex:
             exclude_ai_hypothesis: When True, ``ai_hypothesis`` claims are excluded even
                 if the layer filter would admit them. Provided so that a query for
                 sourced claims cannot accidentally include inference.
+            diacritics: ``both`` (default), ``exact``, or ``folded``.
         """
         self.require_available()
         if limit < 1:
             raise SearchError(f"limit must be at least 1, got {limit}.")
-        match = prefix_query(query) if prefix else phrase_query(query)
+        _validate_diacritic_mode(diacritics)
+        match = self._claim_match(query, prefix, diacritics)
 
-        sql = (
-            "select f.claim_id, f.layer, f.non_authoritative, c.statement, "
-            "bm25(claim_fts) as rank "
-            "from claim_fts f left join claims c on c.id = f.claim_id "
-            "where claim_fts match ?"
+        inner = (
+            "select claim_id, layer, non_authoritative, bm25(claim_fts) as rank "
+            "from claim_fts where (claim_fts match ?) order by rank limit ?"
         )
-        params: list[Any] = [match]
+        inner_params: list[Any] = [match, max(1, limit * 3)]
+        where: list[str] = []
         allowed = self._resolve_layers(layers)
         if allowed is not None:
-            sql += f" and f.layer in ({','.join('?' * len(allowed))})"
-            params.extend(allowed)
+            placeholders = ",".join("?" * len(allowed))
+            where.append(f"sub.layer in ({placeholders})")
+            inner_params.extend(allowed)
         if exclude_ai_hypothesis:
-            sql += " and f.layer <> 'ai_hypothesis'"
-        sql += " order by rank limit ?"
-        params.append(limit)
+            where.append("sub.layer <> 'ai_hypothesis'")
+        sql = (
+            "select sub.claim_id, sub.layer, sub.non_authoritative, c.statement, "
+            "sub.rank from (" + inner + ") as sub "
+            "left join claims c on c.id = sub.claim_id "
+            + ("where " + " and ".join(where) if where else "")
+            + " order by sub.rank"
+        )
+        params = inner_params
 
         try:
             rows = self.conn.execute(sql, params).fetchall()
         except sqlite3.OperationalError as exc:
             raise SearchError(f"FTS5 query failed for {query!r}: {exc}") from exc
-        return tuple(
+        hits = [
             ClaimHit(
                 claim_id=row[0], layer=row[1], non_authoritative=bool(row[2]),
                 statement=row[3] if row[3] is not None else "",
                 rank=float(row[4]),
             )
             for row in rows
-        )
+        ]
+        return tuple(self._dedupe_claims(hits)[:limit])
+
+    def _term(self, folded: bool, query: str, prefix: bool) -> str:
+        """Build the MATCH term for *query*.
+
+        When matching the folded column (*folded* is True), the query is folded with
+        the same NFD transform used at index time. When matching the original column
+        it is used as written. Prefix matching operates on whole tokens, so the
+        transform must be identical on both sides.
+        """
+        term = fold_diacritics(query) if folded else query
+        return prefix_query(term) if prefix else phrase_query(term)
+
+    def _corpus_match(self, query: str, prefix: bool, diacritics: str) -> str:
+        """MATCH over the original and folded corpus columns.
+
+        When ``diacritics`` is ``both`` the query is evaluated against BOTH columns
+        and the hits are unioned. Searching only whichever column the query string
+        happens to resemble would miss records stored in the other form (for
+        example an unpointed Hebrew query against pointed storage), because FTS5
+        ``unicode61 remove_diacritics 2`` does not normalize Greek or Hebrew.
+        """
+        if diacritics == "exact":
+            return "{text} : " + self._term(False, query, prefix)
+        if diacritics == "folded":
+            return "{text_folded} : " + self._term(True, query, prefix)
+        exact = "{text} : " + self._term(False, query, prefix)
+        folded = "{text_folded} : " + self._term(True, query, prefix)
+        return exact + " OR " + folded
+
+    def _claim_match(self, query: str, prefix: bool, diacritics: str) -> str:
+        """MATCH over the original and folded claim columns.
+
+        When ``diacritics`` is ``both`` the query is evaluated against BOTH columns
+        and the hits are unioned.
+        """
+        if diacritics == "exact":
+            return "{statement} : " + self._term(False, query, prefix)
+        if diacritics == "folded":
+            return "{statement_folded} : " + self._term(True, query, prefix)
+        exact = "{statement} : " + self._term(False, query, prefix)
+        folded = "{statement_folded} : " + self._term(True, query, prefix)
+        return exact + " OR " + folded
+
+    @staticmethod
+    def _dedupe_corpus(hits: list[CorpusHit]) -> list[CorpusHit]:
+        """Deduplicate by record, keeping the best rank.
+
+        A record can match on both columns; the union must not double-count it.
+        """
+        best: dict[str, CorpusHit] = {}
+        for hit in hits:
+            current = best.get(hit.record_id)
+            if current is None or hit.rank < current.rank:
+                best[hit.record_id] = hit
+        return sorted(best.values(), key=lambda h: h.rank)
+
+    @staticmethod
+    def _dedupe_claims(hits: list[ClaimHit]) -> list[ClaimHit]:
+        best: dict[str, ClaimHit] = {}
+        for hit in hits:
+            current = best.get(hit.claim_id)
+            if current is None or hit.rank < current.rank:
+                best[hit.claim_id] = hit
+        return sorted(best.values(), key=lambda h: h.rank)
 
     def _resolve_layers(self, layers: Iterable[Any] | None) -> tuple[str, ...] | None:
         if layers is None:
