@@ -51,6 +51,11 @@ class RetrievalResult:
     score: float
     backend: str
     extra: Mapping[str, Any] | None = None
+    #: Source/provenance locator where the backend knows it (edition or dataset).
+    edition_source: str | None = None
+    #: Verification status of the hit's record, or None where not recorded at
+    #: this level. NEVER invented by a backend.
+    verification_status: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -61,6 +66,8 @@ class RetrievalResult:
             "score": self.score,
             "backend": self.backend,
             "extra": dict(self.extra) if self.extra else None,
+            "edition_source": self.edition_source,
+            "verification_status": self.verification_status,
         }
 
 

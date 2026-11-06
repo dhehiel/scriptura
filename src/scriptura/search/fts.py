@@ -1,17 +1,35 @@
 """SQLite FTS5 lexical search.
 
-Normative source: BKB-ARCH-001 section 7; ADR-0009.
+Normative source: BKB-ARCH-001 section 7; ADR-0009 (corrected); ADR-0011.
 
-FTS5 is the BASELINE retrieval tier and is always available. Tokenization uses
-``unicode61`` with ``remove_diacritics 2``, which gives accent-insensitive matching
-over polytonic Greek and pointed Hebrew.
+FTS5 is the BASELINE retrieval tier and is always available.
+
+Search modes (``diacritics`` parameter). These are precise, and NONE of them is
+byte-exact at the index level -- FTS5 tokenizes by definition:
+
+- ``exact``: match against the STORED-FORM index column with NO application-level
+  folding. The FTS tokenizer (``unicode61``) still normalizes case and strips its
+  own Latin diacritics -- that is TOKENIZER NORMALIZATION, not byte-exactness.
+- ``folded``: match against the EXPLICITLY FOLDED index column, where the query is
+  transformed with the same NFD fold used at index time
+  (:func:`scriptura.core.text.fold_diacritics`).
+- ``both`` (default): evaluate BOTH paths and deduplicate. Union, never
+  transliteration: Greek matches Greek, Hebrew matches Hebrew.
+
+Byte-exact equality is NOT an FTS feature. Where it is required, verify it in
+application code with :func:`verify_byte_exact`, comparing the STORED string to
+the candidate string.
 
 CRITICAL: diacritic folding is a SEARCH affordance only. The stored text in
-``corpus_records`` and ``claims`` is NEVER altered (BKB-DATA-001 rule U6). Byte-exact
-comparison uses the stored text; match comparison may use the folded form.
+``corpus_records`` and ``claims`` is NEVER altered (BKB-DATA-001 rule U6).
+VERIFIED ON SQLITE 3.40.1: the tokenizer's ``remove_diacritics 2`` folds LATIN
+diacritics only; Greek polytonic and Hebrew niqqud are folded EXPLICITLY into a
+separate index column (ADR-0009 corrected).
 
-Search results ALWAYS carry epistemic layer information. A search never silently
-merges layers; layer filtering is a first-class parameter.
+Search results ALWAYS carry epistemic layer, record id, and the non-authoritative
+flag. A search never silently merges layers; layer filtering is a first-class
+parameter. Filtering and pagination are applied AFTER the candidate fetch so that
+a premature inner LIMIT cannot drop relevant results.
 """
 
 from __future__ import annotations
@@ -36,6 +54,7 @@ __all__ = [
     "phrase_query",
     "prefix_query",
     "fold_diacritics",
+    "verify_byte_exact",
 ]
 
 #: The tokenizer configuration. ``remove_diacritics 2`` folds LATIN diacritics for
@@ -59,8 +78,14 @@ _MATCH_UNSAFE = re.compile(r'["()*:^-]')
 class CorpusHit:
     """A hit against the corpus index.
 
-    ``layer`` is always present. ``text`` is the STORED text from ``corpus_records``,
-    not the indexed form.
+    Carries everything a retrieval result must preserve (directive section 9):
+    layer, record id, edition/source, provenance, verification status, and the
+    non-authoritative flag.
+
+    ``text`` is the STORED text from ``corpus_records``, not the indexed form.
+    ``verification_status`` is ``None`` for corpus records: per-record
+    verification lives on ``claims``; corpus records carry dataset-level licence
+    status instead.
     """
 
     record_id: str
@@ -69,6 +94,9 @@ class CorpusHit:
     reference_display: str | None
     text: str
     rank: float
+    source_uri: str | None = None
+    verification_status: str | None = None
+    non_authoritative: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -78,6 +106,9 @@ class CorpusHit:
             "reference_display": self.reference_display,
             "text": self.text,
             "rank": self.rank,
+            "source_uri": self.source_uri,
+            "verification_status": self.verification_status,
+            "non_authoritative": self.non_authoritative,
         }
 
 
@@ -94,6 +125,8 @@ class ClaimHit:
     non_authoritative: bool
     statement: str
     rank: float
+    source_uri: str | None = None
+    verification_status: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -102,6 +135,8 @@ class ClaimHit:
             "non_authoritative": self.non_authoritative,
             "statement": self.statement,
             "rank": self.rank,
+            "source_uri": self.source_uri,
+            "verification_status": self.verification_status,
         }
 
 
@@ -168,6 +203,24 @@ def prefix_query(term: str) -> str:
             f"queries match a single bare token; they cannot embed syntax."
         )
     return stripped + "*"
+
+
+def verify_byte_exact(stored: str, candidate: str) -> bool:
+    """Return whether *stored* and *candidate* are byte-exact equal.
+
+    FTS5 cannot provide byte-exact matching: it tokenizes. Where byte-exactness
+    is required, verify it HERE, in application code, by comparing the stored
+    string to the candidate string directly (no tokenizer, no folding).
+
+    Raises:
+        SearchError: if either argument is not a string.
+    """
+    if not isinstance(stored, str) or not isinstance(candidate, str):
+        raise SearchError(
+            f"verify_byte_exact requires two strings, got "
+            f"{type(stored).__name__} and {type(candidate).__name__}."
+        )
+    return stored == candidate
 
 
 class FtsIndex:
@@ -331,36 +384,39 @@ class FtsIndex:
         _validate_diacritic_mode(diacritics)
         match = self._corpus_match(query, prefix, diacritics)
 
-        # NOTE: record_id, layer, edition_id and reference_display are UNINDEXED
-        # columns. Reading them inside the FTS MATCH query is free, but FILTERING on
-        # them inside the FTS query silently discards ALL rows on some builds
-        # (verified on this platform's SQLite 3.40.1 for prefix queries with an OR
-        # across two columns). The layer and edition filters are therefore applied
-        # OUTSIDE the FTS subquery, on plain columns. This is behaviour-preserving
+        # PAGINATION AND FILTERING (directive section 9): the candidate set is
+        # fetched WITHOUT an inner LIMIT, then layer/edition filters are applied,
+        # then dedupe, then the caller's limit. A premature inner LIMIT would drop
+        # relevant results whenever the top-ranked matches fall outside the filter.
+        # record_id/layer/edition_id are UNINDEXED columns; filtering on them
+        # INSIDE the FTS MATCH query silently discards rows on some builds
+        # (verified on SQLite 3.40.1 for prefix queries with an OR across two
+        # columns), so the filters live OUTSIDE the FTS subquery. The corpus is
+        # bounded (ADR-0001), so fetching all matches before filtering is correct
         # and cost-free at this scale.
         inner = (
             "select record_id, layer, edition_id, reference_display, "
             "bm25(corpus_fts) as rank from corpus_fts where (corpus_fts match ?)"
-            " order by rank limit ?"
+            " order by rank"
         )
-        inner_params: list[Any] = [match, max(1, limit * 3)]
+        sql = (
+            "select sub.record_id, sub.layer, sub.edition_id, sub.reference_display, "
+            "cr.text, sub.rank, cr.source_uri from (" + inner + ") as sub "
+            "left join corpus_records cr on cr.id = sub.record_id"
+        )
+        params: list[Any] = [match]
         where: list[str] = []
         allowed = self._resolve_layers(layers)
         if allowed is not None:
             placeholders = ",".join("?" * len(allowed))
             where.append(f"sub.layer in ({placeholders})")
-            inner_params.extend(allowed)
+            params.extend(allowed)
         if edition_id is not None:
             where.append("sub.edition_id = ?")
-            inner_params.append(edition_id)
-        sql = (
-            "select sub.record_id, sub.layer, sub.edition_id, sub.reference_display, "
-            "cr.text, sub.rank from (" + inner + ") as sub "
-            "left join corpus_records cr on cr.id = sub.record_id "
-            + ("where " + " and ".join(where) if where else "")
-            + " order by sub.rank"
-        )
-        params = inner_params
+            params.append(edition_id)
+        if where:
+            sql += " where " + " and ".join(where)
+        sql += " order by sub.rank"
 
         try:
             rows = self.conn.execute(sql, params).fetchall()
@@ -376,6 +432,9 @@ class FtsIndex:
                 # The STORED text, never the indexed form.
                 text=row[4] if row[4] is not None else "",
                 rank=float(row[5]),
+                source_uri=row[6],
+                verification_status=None,  # dataset-level, not per corpus record
+                non_authoritative=(row[1] == "ai_hypothesis"),
             )
             for row in rows
         ]
@@ -400,27 +459,29 @@ class FtsIndex:
         _validate_diacritic_mode(diacritics)
         match = self._claim_match(query, prefix, diacritics)
 
+        # Same pagination rule as search_corpus: fetch all candidates, filter,
+        # dedupe, then limit. Filters live outside the FTS MATCH subquery.
         inner = (
             "select claim_id, layer, non_authoritative, bm25(claim_fts) as rank "
-            "from claim_fts where (claim_fts match ?) order by rank limit ?"
+            "from claim_fts where (claim_fts match ?) order by rank"
         )
-        inner_params: list[Any] = [match, max(1, limit * 3)]
+        sql = (
+            "select sub.claim_id, sub.layer, sub.non_authoritative, c.statement, "
+            "sub.rank, c.source_uri, c.verification_state from (" + inner + ") as sub "
+            "left join claims c on c.id = sub.claim_id"
+        )
+        params: list[Any] = [match]
         where: list[str] = []
         allowed = self._resolve_layers(layers)
         if allowed is not None:
             placeholders = ",".join("?" * len(allowed))
             where.append(f"sub.layer in ({placeholders})")
-            inner_params.extend(allowed)
+            params.extend(allowed)
         if exclude_ai_hypothesis:
             where.append("sub.layer <> 'ai_hypothesis'")
-        sql = (
-            "select sub.claim_id, sub.layer, sub.non_authoritative, c.statement, "
-            "sub.rank from (" + inner + ") as sub "
-            "left join claims c on c.id = sub.claim_id "
-            + ("where " + " and ".join(where) if where else "")
-            + " order by sub.rank"
-        )
-        params = inner_params
+        if where:
+            sql += " where " + " and ".join(where)
+        sql += " order by sub.rank"
 
         try:
             rows = self.conn.execute(sql, params).fetchall()
@@ -431,6 +492,8 @@ class FtsIndex:
                 claim_id=row[0], layer=row[1], non_authoritative=bool(row[2]),
                 statement=row[3] if row[3] is not None else "",
                 rank=float(row[4]),
+                source_uri=row[5],
+                verification_status=row[6],
             )
             for row in rows
         ]

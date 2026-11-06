@@ -1,8 +1,21 @@
 
 """Read-only stdlib HTTP surface.
 
-Normative source: BKB-ARCH-001 section 8.2; ADR-0004.
-Read-only. No write endpoints. Loopback by default.
+Normative source: BKB-ARCH-001 section 8.2 (corrected); ADR-0004; ADR-0011.
+
+Read-only. No write endpoints. **Loopback only: a non-loopback binding is
+REJECTED BY DEFAULT** (directive section 10). A read-only API is not
+automatically safe for public exposure. An override flag does NOT independently
+authorize public exposure: external binding requires ALL FOUR of
+
+1. an explicit ``allow_non_loopback`` operator flag,
+2. an explicit security configuration,
+3. a documented authentication and authorization design,
+4. an explicit operator acknowledgement,
+
+PLUS a listed approved external-binding ADR. No such ADR exists yet, so
+external binding is refused unconditionally today; the gate fails closed rather
+than opening an insecure surface to satisfy a configuration option.
 """
 
 from __future__ import annotations
@@ -17,11 +30,82 @@ from ..core.errors import ApiError
 from ..graph import KnowledgeGraph, traverse
 from ..storage import apply_migrations, connect
 
-__all__ = ["DEFAULT_HOST", "DEFAULT_PORT", "ROUTES", "ScripturaHandler",
+__all__ = ["DEFAULT_HOST", "DEFAULT_PORT", "LOOPBACK_HOSTS", "ROUTES",
+           "APPROVED_EXTERNAL_BINDING_ADRS", "ExternalBindingRefused",
+           "is_loopback", "check_external_binding", "ScripturaHandler",
            "describe_database", "build_router_snapshot", "serve"]
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
+
+#: Hosts that count as loopback. Anything else is an external binding.
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
+
+#: ADRs that have approved external (non-loopback) binding. EMPTY BY DESIGN:
+#: no such ADR exists. External binding therefore cannot succeed today, which is
+#: the fail-closed posture required by BKB-ARCH-001 section 8.2.
+APPROVED_EXTERNAL_BINDING_ADRS: frozenset[str] = frozenset()
+
+
+class ExternalBindingRefused(ApiError):
+    """A non-loopback binding was refused (BKB-ARCH-001 section 8.2).
+
+    Carries the list of unmet conditions so an operator sees exactly what is
+    required rather than a generic failure.
+    """
+
+    def __init__(self, host: str, unmet: tuple[str, ...]) -> None:
+        self.host = host
+        self.unmet_conditions = tuple(unmet)
+        listing = "\n".join(f"  - {c}" for c in self.unmet_conditions)
+        super().__init__(
+            f"External (non-loopback) binding to {host!r} is REFUSED by default. "
+            f"A read-only API is not automatically safe for public exposure. "
+            f"{len(self.unmet_conditions)} condition(s) unmet:\n{listing}"
+        )
+
+
+def is_loopback(host: str) -> bool:
+    """Return whether *host* is a loopback address."""
+    return str(host).strip() in LOOPBACK_HOSTS
+
+
+def check_external_binding(
+    host: str,
+    *,
+    allow_non_loopback: bool = False,
+    security_config: Any = None,
+    auth_design: str | None = None,
+    operator_acknowledgement: bool = False,
+    external_binding_adr: str | None = None,
+) -> tuple[bool, tuple[str, ...]]:
+    """Evaluate the four-part external-binding gate (BKB-ARCH-001 section 8.2).
+
+    An override flag does NOT independently authorize exposure: it is necessary
+    but never sufficient. All four conditions must hold AND the named ADR must be
+    listed in :data:`APPROVED_EXTERNAL_BINDING_ADRS`. The list is empty, so this
+    always fails closed until a human-approved ADR exists.
+
+    Returns:
+        ``(permitted, unmet)`` where *unmet* names every condition not satisfied.
+    """
+    if is_loopback(host):
+        return True, ()
+    unmet: list[str] = []
+    if not allow_non_loopback:
+        unmet.append("explicit operator flag allow_non_loopback")
+    if security_config is None:
+        unmet.append("explicit security configuration")
+    if not (auth_design or "").strip():
+        unmet.append("documented authentication and authorization design")
+    if not operator_acknowledgement:
+        unmet.append("explicit operator acknowledgement")
+    if not external_binding_adr or external_binding_adr not in APPROVED_EXTERNAL_BINDING_ADRS:
+        unmet.append(
+            "an approved external-binding ADR (none exists yet; see "
+            "BKB-ARCH-001 section 8.2)"
+        )
+    return (not unmet), tuple(unmet)
 
 ROUTES = (
     "GET /health",
@@ -182,9 +266,33 @@ def build_router_snapshot(db_path: str) -> dict[str, Any]:
         return describe_database(conn)
 
 
-def serve(db_path: str, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> None:
-    path = str(db_path)
+def serve(
+    db_path: str,
+    host: str = DEFAULT_HOST,
+    port: int = DEFAULT_PORT,
+    *,
+    allow_non_loopback: bool = False,
+    security_config: Any = None,
+    auth_design: str | None = None,
+    operator_acknowledgement: bool = False,
+    external_binding_adr: str | None = None,
+) -> None:
+    """Serve the read-only surface, refusing any non-loopback binding by default.
 
+    Raises:
+        ExternalBindingRefused: if *host* is not loopback and the four-part gate
+            plus approved-ADR condition is not fully satisfied. The refusal
+            happens BEFORE any socket is opened.
+    """
+    permitted, unmet = check_external_binding(
+        host, allow_non_loopback=allow_non_loopback, security_config=security_config,
+        auth_design=auth_design, operator_acknowledgement=operator_acknowledgement,
+        external_binding_adr=external_binding_adr,
+    )
+    if not permitted:
+        raise ExternalBindingRefused(host, unmet)
+
+    path = str(db_path)
     server = ThreadingHTTPServer((host, port), ScripturaHandler)
     server.db_path = path  # type: ignore[attr-defined]
     print(f"Scriptura read-only API on http://{host}:{port} (db: {path})")
@@ -201,11 +309,19 @@ if __name__ == "__main__":
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--describe", action="store_true")
+    parser.add_argument(
+        "--allow-non-loopback", action="store_true",
+        help="Necessary but NOT sufficient for external binding: the security "
+             "config, auth design, operator acknowledgement, and an approved "
+             "ADR are all still required (BKB-ARCH-001 section 8.2).",
+    )
     args = parser.parse_args()
     if args.describe:
         print(json.dumps(build_router_snapshot(args.db), indent=2, ensure_ascii=False))
     else:
-        if args.host not in ("127.0.0.1", "localhost", "::1"):
-            print("WARNING: binding beyond loopback requires an ADR on auth.")
-        serve(args.db, args.host, args.port)
+        # No warning path: a non-loopback host is REFUSED by serve() unless the
+        # full four-part gate plus an approved ADR is satisfied. The flag below
+        # never independently authorizes exposure.
+        serve(args.db, args.host, args.port,
+              allow_non_loopback=args.allow_non_loopback)
 

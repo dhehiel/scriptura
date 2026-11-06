@@ -153,6 +153,13 @@ class LeannAdapter:
                     non_authoritative=(layer == "ai_hypothesis"), text=text,
                     score=score, backend=self.backend_id,
                     extra={"index_path": str(self.index_path)},
+                    # Honest defaults: a backend must never invent verification
+                    # status or provenance it does not hold. None means "not
+                    # recorded at this level", never "verified".
+                    edition_source=(hit.get("edition_source")
+                                    if isinstance(hit, dict) else None),
+                    verification_status=(hit.get("verification_status")
+                                          if isinstance(hit, dict) else None),
                 )
             )
         return tuple(out)

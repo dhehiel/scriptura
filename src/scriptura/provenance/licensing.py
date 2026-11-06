@@ -139,48 +139,105 @@ class LicensingStore:
         source = self.source(dataset_id)
         if source is None:
             return GateResult(dataset_id=dataset_id, permitted=False, unmet=(GATE_CONDITIONS[0],))
+        # MULTI-LICENCE EVALUATION (BKB-CORPUS-001 4.2, ADR-0010): a dataset
+        # may carry more than one applicable licence (text + annotation, or
+        # per-item licences inside an aggregator). EVERY applicable licence must
+        # pass; if EVEN ONE is unresolved, disputed, restricted, or incompatible,
+        # the whole dataset is blocked.
         licences = self.licences_for(dataset_id)
         if not licences:
             unmet.append(GATE_CONDITIONS[1])
-        lic = licences[0] if licences else {}
+
         status = str(source.get("verification_status", ""))
-        lic_status = str(lic.get("verification_status", "")) if lic else ""
-        if status != VERIFIED or (lic and lic_status != VERIFIED):
+        if status != VERIFIED:
             unmet.append(GATE_CONDITIONS[2])
+
         evidence = str(source.get("evidence_kind", ""))
-        lic_evidence = str(lic.get("evidence_kind", "")) if lic else ""
-        has_url = bool(source.get("licence_url")) or bool(lic.get("licence_url"))
-        has_date = bool(source.get("retrieved_at")) or bool(lic.get("retrieved_at"))
+        has_url = bool(source.get("licence_url"))
+        has_date = bool(source.get("retrieved_at"))
         if evidence != "primary" or not has_url or not has_date:
             unmet.append(GATE_CONDITIONS[3])
-        elif lic and lic_evidence != "primary":
-            unmet.append(GATE_CONDITIONS[3])
-        if lic.get("attribution_required") and not (lic.get("attribution_text") or "").strip():
-            unmet.append(GATE_CONDITIONS[4])
-        if lic.get("derivatives_permitted") is None:
-            unmet.append(GATE_CONDITIONS[5])
-        if lic.get("commercial_use_permitted") is None:
-            unmet.append(GATE_CONDITIONS[6])
-        share_alike = lic.get("share_alike")
-        if share_alike is None:
-            unmet.append(GATE_CONDITIONS[7])
-        elif share_alike and not (lic.get("share_alike_consequence") or "").strip():
-            unmet.append(GATE_CONDITIONS[7] + " (consequence unstated)")
+
+        # Per-licence checks: each applicable licence is evaluated in full.
+        # Most-restrictive aggregation for the result fields.
+        licence_names: list[str] = []
+        share_alike_any = False
+        commercial_permitted: bool | None = None
+        attribution_text: str | None = None
+        for lic in licences:
+            lic_status = str(lic.get("verification_status", ""))
+            if lic_status != VERIFIED:
+                unmet.append(
+                    GATE_CONDITIONS[2] +
+                    f" (licence {lic.get('licence_id', '?')}: {lic_status or 'missing'})"
+                )
+            lic_evidence = str(lic.get("evidence_kind", ""))
+            lic_url = bool(lic.get("licence_url"))
+            lic_date = bool(lic.get("retrieved_at"))
+            if lic_evidence != "primary" or not lic_url or not lic_date:
+                unmet.append(
+                    GATE_CONDITIONS[3] +
+                    f" (licence {lic.get('licence_id', '?')}: not primary-sourced)"
+                )
+            if lic.get("attribution_required") and not (lic.get("attribution_text") or "").strip():
+                unmet.append(
+                    GATE_CONDITIONS[4] +
+                    f" (licence {lic.get('licence_id', '?')}: no verbatim string)"
+                )
+            if lic.get("derivatives_permitted") is None:
+                unmet.append(
+                    GATE_CONDITIONS[5] +
+                    f" (licence {lic.get('licence_id', '?')})"
+                )
+            if lic.get("commercial_use_permitted") is None:
+                unmet.append(
+                    GATE_CONDITIONS[6] +
+                    f" (licence {lic.get('licence_id', '?')})"
+                )
+            else:
+                this_commercial = bool(lic.get("commercial_use_permitted"))
+                commercial_permitted = (
+                    this_commercial if commercial_permitted is None
+                    else (commercial_permitted and this_commercial)
+                )
+            this_share_alike = lic.get("share_alike")
+            if this_share_alike is None:
+                unmet.append(
+                    GATE_CONDITIONS[7] +
+                    f" (licence {lic.get('licence_id', '?')})"
+                )
+            elif this_share_alike:
+                share_alike_any = True
+                if not (lic.get("share_alike_consequence") or "").strip():
+                    unmet.append(
+                        GATE_CONDITIONS[7] + " (consequence unstated)" +
+                        f" (licence {lic.get('licence_id', '?')})"
+                    )
+            if lic.get("licence"):
+                licence_names.append(str(lic.get("licence")))
+            if attribution_text is None and (lic.get("attribution_text") or "").strip():
+                attribution_text = str(lic.get("attribution_text"))
+
         if not self.registry_gate_open():
             unmet.append(GATE_CONDITIONS[8])
         if dataset_id not in set(authorised or ()):
             unmet.append(GATE_CONDITIONS[9])
+
         permitted = not unmet
-        commercial = lic.get("commercial_use_permitted")
-        if permitted and commercial is False:
-            warnings.append("QUARANTINE REQUIRED: exclude from commercial distribution.")
-        if permitted and share_alike:
-            warnings.append("SHARE-ALIKE: derivatives inherit upstream licence, NOT Apache 2.0.")
+        if permitted and commercial_permitted is False:
+            warnings.append(
+                "QUARANTINE REQUIRED: exclude from commercial distribution."
+            )
+        if permitted and share_alike_any:
+            warnings.append(
+                "SHARE-ALIKE: derivatives inherit upstream licence, NOT Apache 2.0."
+            )
         return GateResult(
             dataset_id=dataset_id, permitted=permitted, unmet=tuple(unmet),
-            licence_licence=lic.get("licence"), share_alike=share_alike,
-            commercial_use_permitted=commercial,
-            attribution_text=(lic.get("attribution_text") or None),
+            licence_licence="; ".join(licence_names) if licence_names else None,
+            share_alike=share_alike_any if licences else None,
+            commercial_use_permitted=commercial_permitted,
+            attribution_text=attribution_text,
             warnings=tuple(warnings),
         )
 
