@@ -67,7 +67,7 @@ make check && make test
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
 | D1 | **BKB-ARCH-001** System Architecture: decomposition, process model, module boundaries, deployment, Gomine interoperability | `docs/architecture/BKB-ARCH-001-system-architecture.md` | Met |
-| D2 | **BKB-DATA-001** Data Model and Epistemic Layers: five layers, references, provenance, relational schema, invariants | `docs/architecture/BKB-DATA-001-data-model.md` (v1.0.1 — U6 corrected for verified folding behaviour) | Met |
+| D2 | **BKB-DATA-001** Data Model and Epistemic Layers: seven layers, references, provenance, relational schema, invariants | `docs/architecture/BKB-DATA-001-data-model.md` (v1.1.0 — seven layers, no ranking) (ADR-0011) | Met |
 | D3 | **BKB-CORPUS-001** Corpus Ingestion: lifecycle, licence gate, adapter contract, validation, provenance | `docs/architecture/BKB-CORPUS-001-corpus-ingestion.md` | Met |
 | D4 | **BKB-AGENTS-001** Research Agent Framework: contracts, capability boundaries, evidence obligations, human review. **Specified, not implemented.** | `docs/architecture/BKB-AGENTS-001-agent-framework.md` §2 | Met |
 | D5 | **BKB-VERIFY-001** Verification Framework: states, evidence chains, confidence, disagreement, checks, assertion rules | `docs/architecture/BKB-VERIFY-001-verification-framework.md` | Met |

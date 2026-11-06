@@ -65,7 +65,7 @@ edited. Every specification carries a `Change history` section.
 
 - **BKB-ARCH-001** defines the container: modules, process model, boundaries, deployment, Gomine interop.
 - **BKB-DATA-001** defines what may be stored and how it is typed. This is the load-bearing specification: the
-  five epistemic layers originate here and every other specification depends on them.
+  seven epistemic layers originate here and every other specification depends on them.
 - **BKB-CORPUS-001** defines how data enters, gated by licence verification.
 - **BKB-AGENTS-001** defines who may act and within what boundaries. Specified at M0; **not implemented**.
 - **BKB-VERIFY-001** defines what may be asserted, given evidence.

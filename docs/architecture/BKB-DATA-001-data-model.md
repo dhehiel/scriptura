@@ -6,7 +6,7 @@
 |---|---|
 | **ID** | BKB-DATA-001 |
 | **Status** | Accepted |
-| **Version** | 1.0.1 |
+| **Version** | 1.1.0 |
 | **Milestone** | M0 |
 | **Owner** | Maintainer |
 | **Normative** | Yes |
@@ -14,7 +14,7 @@
 
 ## Abstract
 
-This specification defines Scriptura's data model: the five epistemic layers and their invariants, the canonical
+This specification defines Scriptura's data model: the seven epistemic layers and their invariants, the canonical
 reference system, the provenance model, the relational schema over SQLite, identifier policy, Unicode handling,
 migration policy, and the serialisation contract. It is the normative source for what may be stored, how it must
 be typed, and what must never be collapsed.
@@ -46,16 +46,24 @@ Ingestion lifecycle ([BKB-CORPUS-001](BKB-CORPUS-001-corpus-ingestion.md)); veri
 
 ### 2.1 The closed set
 
-Every record that makes a claim carries exactly one epistemic layer. The set is **closed** at M0. Adding a layer
-requires an accepted ADR.
+Every record that makes a claim carries exactly one epistemic layer. The set is **closed** at ADR-0011.
+Adding a layer requires an accepted ADR.
+
+**Layers classify the *nature* of a record, not its truth, reliability, or authority. There is no ranking
+among them** (see §2.4).
 
 | Value | Name | Definition | Authority |
 |---|---|---|---|
-| `scripture` | Scripture | Text of a witness as attested by a **named edition** | The edition |
-| `historical_evidence` | Historical evidence | Material and documentary evidence **external** to scripture | The evidence itself |
-| `linguistic_observation` | Linguistic observation | Morphology, syntax, lexicography, philology | The analysis and its analyst or dataset |
-| `theological_interpretation` | Theological interpretation | Interpretive positions of **named** traditions and authors | The named tradition or author |
-| `ai_hypothesis` | AI hypothesis | Machine-generated inference | **None.** Non-authoritative by definition |
+| `scripture` | Scripture | Text as attested by a **named edition, translation, or manuscript witness** | The edition |
+| `textual_observation` | Textual observation | Manuscript readings, textual variants, transmission phenomena, textual criticism, witness comparisons | The witnesses compared and the analyst or dataset |
+| `linguistic_observation` | Linguistic observation | Morphology, syntax, lexicography, semantics, phonology, orthography, discourse analysis | The analysis and its analyst or dataset |
+| `historical_evidence` | Historical evidence | Archaeological, documentary, inscriptional, material, and other external historical evidence | The evidence itself |
+| `scholarly_interpretation` | Scholarly interpretation | Academic and critical interpretations attributed to identifiable scholars, works, and research publications | The named scholar, work, and publication |
+| `theological_interpretation` | Theological interpretation | Interpretations attributed to identifiable theological traditions, authors, works, and doctrinal frameworks | The named tradition or author |
+| `ai_hypothesis` | AI hypothesis | Machine-generated suggestions, inferences, patterns, proposed relationships | **None.** Non-authoritative by definition |
+
+**No two of these may be combined.** `textual_observation` is never `scripture`; `scholarly_interpretation` is
+never `theological_interpretation`; `ai_hypothesis` is never a human-authored finding.
 
 ### 2.2 Per-layer requirements
 
@@ -67,11 +75,27 @@ requires an accepted ADR.
 | `witness_id` | Mandatory where the edition records witnesses (manuscripts, versions) |
 | `reference` | **Mandatory.** A valid canonical reference |
 | `text` | **Mandatory.** Copied from the ingested edition. **Never generated.** |
-| `normalisation_form` | Mandatory for original-language text |
-| `canon_profile` | Mandatory where canon membership is relevant |
+| `language` | **Mandatory.** |
+| `normalisation_form` | Mandatory where relevant (original-language text) |
+| `canon_profile` | Mandatory where relevant (canon membership) |
 
 Prohibitions: no generated text; no text without an edition; no presentation as "the Bible says" where the
 record says "edition E reads".
+
+#### `textual_observation`
+
+| Field | Requirement |
+|---|---|
+| `reference` | **Mandatory.** The passage under comparison |
+| `compared_witnesses` | **Mandatory.** The witnesses or editions being compared (at least two sides) |
+| `readings_compared` | **Mandatory.** The actual readings, attributed to their witnesses |
+| `source_uri` | **Mandatory.** Source of the textual evidence (apparatus, edition, dataset) |
+| `source_dataset` or `analyst` | **Mandatory.** At least one — the observer of the comparison |
+| `observation_method` or `observation_type` | **Mandatory.** How the comparison/observation was made |
+| `competes_with` | Where competing judgments exist, all are recorded |
+
+Prohibitions: never stored as `scripture` (an apparatus note is not the edition's text); never resolves a
+variant by preference; a textual observation never asserts what the text *should* read.
 
 #### `historical_evidence`
 
@@ -112,20 +136,37 @@ Prohibitions: no observation without an attributed source; contested readings ar
 Prohibitions: no unattributed interpretation (rejected at validation); never presented as fact; "the church
 fathers" is not an attribution — a named author with a named work is.
 
+#### `scholarly_interpretation`
+
+| Field | Requirement |
+|---|---|
+| `scholar` or `author` | **Mandatory.** An identifiable scholar or author |
+| `work` | **Mandatory.** Named work or publication |
+| `publication_meta` | **Mandatory.** Publication metadata (venue/year/edition) |
+| `reference` or `subject` | Mandatory where applicable |
+| `position` | **Mandatory.** The attributed interpretive argument |
+| `supporting_refs` | **Mandatory.** Supporting references (the work's own citations) |
+| `source_uri` | **Mandatory.** Resolvable citation |
+
+Prohibitions: never stored as `theological_interpretation` (and vice versa); unattributed scholarly
+interpretation is rejected at validation; never presented as fact.
+
 #### `ai_hypothesis`
 
 | Field | Requirement |
 |---|---|
 | `model` | **Mandatory.** Identity and version |
 | `method` | **Mandatory.** Prompt or method, or a hash of it |
-| `inputs` | **Mandatory.** Input identifiers |
-| `confidence` | **Mandatory.** Numeric, in `[0, 1]` |
+| `inputs` | **Mandatory.** Input record identifiers |
+| `confidence` | **If supplied.** Numeric, in `[0, 1]` — optional, and never a determinant of layer |
 | `reference` | Optional |
 | `hypothesis` | Mandatory — the inference |
 | `generated_at` | **Mandatory.** |
+| `non_authoritative` | **Mandatory, always true.** |
 
 Prohibitions: never presented without a flag; never promoted by relabelling; never the sole basis for a
-downstream authoritative claim; no generated scripture text.
+downstream authoritative claim; no generated scripture text. **A high confidence score or the presence of
+citations does not make an AI hypothesis authoritative — it remains `ai_hypothesis` at every confidence value.**
 
 ### 2.3 Invariants
 
@@ -134,27 +175,75 @@ downstream authoritative claim; no generated scripture text.
 | L1 | Every claim-bearing record has exactly one layer | `NOT NULL` + `CHECK` constraint; validation |
 | L2 | The layer set is closed; unknown values rejected | Enum + `CHECK` |
 | L3 | `theological_interpretation` requires non-empty attribution | Validation |
+| L3b | `scholarly_interpretation` requires a named scholar/author **and** a named work | Validation + `CHECK` |
+| L3c | `textual_observation` requires reference, compared witnesses, and an attributed analyst/dataset | Validation + `CHECK` |
 | L4 | `scripture` requires edition and valid reference | Validation |
 | L5 | `ai_hypothesis` requires generation provenance | Validation |
 | L6 | `ai_hypothesis` output is flagged at every presentation boundary | Serialisation |
-| L7 | No promotion by relabelling | Promotion requires evidence + human decision + audit record |
+| L7 | No record changes layer by relabelling. Layer change requires a new independently authored and sourced record, independent verification, and an auditable human decision | Validation refuses; audit record required |
 | L8 | Layer survives serialisation round-trip | Tests |
 | L9 | Layer survives the Gomine boundary both ways | Exchange tests |
 | L10 | A query may filter by layer; may never silently merge layers | Query API |
+| L11 | No ranking API exists; confidence, evidence quality, and verification status never determine layer | API-absence tests |
+| L12 | Derivation records preserve every input/output record ID and its layer | Derivation validation tests |
 
-### 2.4 Layer strength
+### 2.4 No universal ranking
 
-```
-ai_hypothesis < theological_interpretation < linguistic_observation < historical_evidence < scripture
-```
+**There is no ordering of the seven layers.** The universal ranking previously specified here
+(`LAYER_ORDER`, `layer_strength`, `weakest_layer`, `compose_layer`) is **removed** by ADR-0011. Comparing two
+layers for "strength" is a category error: they describe different kinds of claim, not grades of truth.
 
-This ordering expresses **warrant**, not truth, and is not a scoring scale.
+The following dimensions are recorded **independently of layer**. None may determine, influence, or imply a
+record's epistemic layer:
 
-- **Downgrading is always safe** and requires no approval.
-- **Upgrading requires** new evidence, an explicit human decision, and an append-only audit record.
-- **Derived records take the weakest layer of their inputs** unless a stronger warrant is explicitly established
-  and recorded.
-- **`scripture` is never a promotion target for generated content.**
+| # | Dimension |
+|---|---|
+| 1 | Epistemic layer |
+| 2 | Source provenance |
+| 3 | Evidence quality |
+| 4 | Confidence |
+| 5 | Verification status |
+| 6 | Scholarly consensus or disagreement, where applicable |
+| 7 | Interpretive tradition, where applicable |
+| 8 | Author or analyst attribution |
+
+**Rules:**
+
+1. **Confidence and evidence quality never determine layer.** A low-confidence historical claim remains
+   `historical_evidence`; an AI hypothesis remains `ai_hypothesis` at any confidence score.
+2. **Verification status never determines layer.** A verified hypothesis may be *superseded* by a new
+   independently authored record; it is never relabelled.
+3. **No output may rank records by epistemic layer** (rule X9).
+4. **`scripture` is never a layer target for generated content**, under any circumstances.
+
+### 2.5 Derivation and mixed evidence
+
+Real research draws on several layers at once. A **derivation record** links inputs to outputs and preserves
+all of:
+
+- every input record ID **and its original epistemic layer**;
+- every output record ID **and its assigned layer**;
+- the transformation method and its parameters;
+- the human or agent responsible;
+- the timestamp, and tool/model identity and version where applicable;
+- supporting evidence and source provenance;
+- verification status, reviewer, and decision authority;
+- disagreements and competing interpretations encountered.
+
+**Rules:**
+
+| # | Rule |
+|---|---|
+| D1 | **No automatic weakest-layer inheritance.** A derived record's layer is assigned explicitly, never computed from its inputs. |
+| D2 | **No automatic promotion to a strongest input's layer.** Strong endpoints do not transfer warrant. |
+| D3 | **Multiple outputs are first-class.** One derivation may produce several records of different layers. |
+| D4 | **Decompose mixed claims.** An output containing different kinds of claim is split into appropriately typed records, never stored as one record with a blended layer. |
+| D5 | **AI-generated research begins as `ai_hypothesis`.** |
+| D6 | **An AI proposal does not become authoritative** because it cites sources or carries high confidence. |
+| D7 | **Layer change requires a new, independently authored and sourced record**, independent verification, and an auditable human decision where required. |
+| D8 | **The original hypothesis is never erased.** The full audit history is retained. |
+| D9 | **Verified scholarly or theological interpretations carry genuine attribution** to the responsible author, tradition, or publication. Relabelling AI output as a scholarly finding is a Critical integrity incident. |
+| D10 | **Disagreements travel with the derivation** — preserved, not averaged, not dropped. |
 
 ---
 
@@ -312,6 +401,7 @@ same source.
 | # | Rule |
 |---|---|
 | S1 | Layer invariants are enforced by `CHECK` constraints, not only by application code |
+| S1b | Edges additionally carry `verification_status` and supporting evidence (see §6.5) |
 | S2 | Foreign keys are enforced on every connection (`PRAGMA foreign_keys = ON`) |
 | S3 | Provenance columns are `NOT NULL` where applicable — orphan records cannot be inserted |
 | S4 | Every claim-bearing table carries `layer`, `source_uri`, `content_hash`, `actor`, `created_at` |
@@ -333,11 +423,12 @@ same source.
 | `editions` | Named editions |
 | `witnesses` | Manuscripts and versions |
 | `corpus_records` | `scripture`-layer text records |
-| `claims` | Claim-bearing records across all five layers |
+| `claims` | Claim-bearing records across all seven layers (see §6.3) |
 | `nodes` | Knowledge graph nodes |
 | `edges` | Knowledge graph edges |
 | `identifier_mappings` | Scriptura identifier ↔ external identifier |
 | `provenance_events` | Append-only provenance and promotion audit |
+| `derivations` | Derivation records linking inputs to outputs with method, actor, and audit fields |
 | `ingestion_runs` | Ingestion audit |
 | `corpus_fts` | FTS5 index over corpus text |
 | `claim_fts` | FTS5 index over claim statements |
@@ -349,12 +440,18 @@ The closed layer set is enforced at the storage level:
 ```sql
 layer TEXT NOT NULL CHECK (layer IN (
   'scripture',
-  'historical_evidence',
+  'textual_observation',
   'linguistic_observation',
+  'historical_evidence',
+  'scholarly_interpretation',
   'theological_interpretation',
   'ai_hypothesis'
 ))
 ```
+
+Enforced by migration `0002_seven_layer_epistemic_model.sql`, which widens the M0 five-value `CHECK`s on
+`claims`, `nodes`, and `edges` and adds the layer-specific nullable columns described below. Migration 0001 is
+never edited (rule M2).
 
 Per-layer requirements are enforced by `CHECK` constraints on `claims`:
 
@@ -367,10 +464,11 @@ CHECK (layer <> 'theological_interpretation'
 CHECK (layer <> 'scripture'
        OR (edition_id IS NOT NULL AND reference_id IS NOT NULL))
 
--- L5: ai_hypothesis requires generation provenance
+-- L5: ai_hypothesis requires generation provenance.
+-- confidence is IF SUPPLIED (ADR-0011): optional, and never a determinant of layer.
 CHECK (layer <> 'ai_hypothesis'
        OR (model IS NOT NULL AND method IS NOT NULL
-           AND inputs_json IS NOT NULL AND confidence IS NOT NULL
+           AND inputs_json IS NOT NULL
            AND generated_at IS NOT NULL))
 
 -- L6: ai_hypothesis is always flagged non-authoritative
@@ -383,9 +481,54 @@ CHECK (layer <> 'linguistic_observation'
 -- historical_evidence requires a type
 CHECK (layer <> 'historical_evidence' OR evidence_type IS NOT NULL)
 
--- confidence, where present, is a probability
+-- L3b: scholarly_interpretation requires a named scholar/author AND a named work.
+-- Parentheses matter: without them OR/AND precedence would make `work` mandatory
+-- for EVERY layer, not only scholarly_interpretation.
+CHECK (layer <> 'scholarly_interpretation'
+       OR ((COALESCE(scholar,'') <> '' OR COALESCE(author,'') <> '')
+           AND COALESCE(work,'') <> ''))
+
+-- L3c: textual_observation requires a reference, compared witnesses,
+-- readings, and an attributed analyst or source dataset
+CHECK (layer <> 'textual_observation'
+       OR (reference_id IS NOT NULL
+           AND COALESCE(compared_witnesses,'') <> ''
+           AND COALESCE(readings_compared,'') <> ''
+           AND (COALESCE(source_dataset,'') <> '' OR COALESCE(analyst,'') <> '')))
+
+-- confidence, where present, is a probability. It NEVER determines layer (L11).
 CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0))
 ```
+
+**Conditional validation:** every `layer <> '...'` guard means a field is required *only* for its own layer.
+A `historical_evidence` row is never required to carry `scholar_name`; a `scholarly_interpretation` row is never
+required to carry `evidence_type`. Fields inapplicable to the current layer are ignored, not enforced.
+
+**Derivation table** (added by migration 0002; see §2.5):
+
+```sql
+CREATE TABLE derivations (
+  id                 TEXT PRIMARY KEY,
+  output_ids         TEXT NOT NULL,  -- JSON array of output record IDs
+  output_layers      TEXT NOT NULL,  -- JSON array, aligned with output_ids
+  input_ids          TEXT NOT NULL,  -- JSON array of input record IDs
+  input_layers       TEXT NOT NULL,  -- JSON array, aligned with input_ids
+  method             TEXT NOT NULL,
+  parameters_json    TEXT,
+  actor              TEXT NOT NULL,
+  tool_identity      TEXT,
+  tool_version       TEXT,
+  created_at         TEXT NOT NULL,
+  verification_state TEXT,
+  reviewer           TEXT,
+  decision_authority TEXT,
+  evidence_json      TEXT,           -- supporting evidence and source provenance
+  disagreements_json TEXT            -- competing interpretations preserved
+);
+```
+
+An output record's layer is recorded on the output record itself **and** mirrored in `output_layers`; it is
+assigned explicitly and never computed from `input_layers` (rules D1–D2).
 
 This means an unattributed interpretation, a generated scripture record without an edition, or an unflagged AI
 hypothesis **cannot be inserted**. The database refuses. This is deliberate: a constraint that lives only in
@@ -418,9 +561,11 @@ CREATE TABLE edges (
   source_node_id      TEXT NOT NULL REFERENCES nodes(id),
   target_node_id      TEXT NOT NULL REFERENCES nodes(id),
   relation            TEXT NOT NULL,
-  layer               TEXT NOT NULL CHECK (layer IN (...)),
+  layer               TEXT NOT NULL CHECK (layer IN (...)),   -- seven values (0002)
   non_authoritative   INTEGER NOT NULL DEFAULT 0,
   confidence          REAL,
+  verification_status TEXT,             -- independent dimension (§2.4)
+  supporting_evidence TEXT,             -- evidence backing this relationship
   payload_json        TEXT,
   source_uri          TEXT NOT NULL,
   content_hash        TEXT NOT NULL,
@@ -433,6 +578,21 @@ CREATE TABLE edges (
 ```
 
 Self-edges are prohibited at M0. A relation requiring one needs an ADR.
+
+**Every relationship retains:** relation type; source and target identifiers; provenance (`source_uri`,
+`content_hash`, `actor`, `created_at`); the author or proposing agent (`actor`); supporting evidence
+(`supporting_evidence`); verification status (`verification_status`); and its epistemic layer.
+
+**Competing relationships are preserved.** Where two sources assert different relations between the same
+endpoints, both edges exist. Edges are never deduplicated by endpoint pair, and a disagreement is never
+resolved by keeping one side.
+
+Typical typed relations (registered in `graph/model.py`): a witness `attests` a reading; a textual observation
+`compares` readings; a linguistic observation `analyses` a form; a scholarly interpretation `argues_for` an
+explanation; a theological interpretation `interprets` a passage; an AI hypothesis `proposes` a possible
+relationship. No agent writes directly into authoritative graph records without the validation and verification
+process: an agent's proposed edge is `ai_hypothesis` and `non_authoritative = 1` unless an authorised derivation
+record with independent verification exists.
 
 ### 6.6 Append-only audit
 
@@ -493,6 +653,7 @@ normalised symmetrically in the folded column; the stored text is untouched.
 | M7 | A ledger hash mismatch is a Critical integrity incident — it indicates an edited migration |
 | M8 | Down-migrations are not supported. Reversal is by a new forward migration |
 | M9 | Destructive migrations require an ADR and maintainer approval |
+| M10 | Migration `0002_seven_layer_epistemic_model` widens the layer `CHECK`s, adds nullable layer-specific columns and the `derivations` table. It is additive, preserves all identifiers and rows, and is verified for idempotency before application to any shared database |
 
 ---
 
@@ -510,6 +671,8 @@ normalised symmetrically in the folded column; the stored text is untouched.
 | X6 | Round-trip must be lossless for layer, provenance, and reference |
 | X7 | An export format that cannot represent layers may not be used |
 | X8 | No `pickle`, no `marshal`, no dynamic code generation |
+| X9 | No output may rank or order records by epistemic layer |
+| X10 | Serialised derivations preserve every input/output record ID with its layer, method, actor, and timestamps |
 
 ### 9.2 Canonical record shape
 
@@ -540,7 +703,9 @@ consumer.
 
 | Class | Invariants |
 |---|---|
-| Layers | L1–L10 (§2.3) |
+| Layers | L1–L12 (§2.3) |
+| Derivation | D1–D10 (§2.5) |
+| No ranking | §2.4; rule X9 |
 | References | R1–R8 (§3.5) |
 | Identifiers | ID1–ID7 (§5) |
 | Schema | S1–S7 (§6.1) |
@@ -564,6 +729,10 @@ An implementation that violates any invariant is defective regardless of whether
 | Graph constraints | `python -m unittest tests.test_graph` |
 | Serialisation round-trip and layer preservation | `python -m unittest tests.test_serialisation` |
 | Schema conformance of registry files | `python -m unittest tests.test_schemas` |
+| Seven layers + unknown rejection + no ranking API | `python -m unittest tests.test_layers` |
+| Derivation-chain preservation | `python -m unittest tests.test_derivation` |
+| Migration 0002 preservation, CHECKs, idempotency | `python -m unittest tests.test_storage` |
+| Gomine exchange round trip (seven layers, derivations) | `python -m unittest tests.test_gomine_exchange` |
 | Full suite | `make test` |
 
 ---
@@ -572,5 +741,6 @@ An implementation that violates any invariant is defective regardless of whether
 
 | Version | Date | Change | ADR |
 |---|---|---|---|
+| 1.1.0 | M0 (recovery R5) | Seven-layer model; universal ranking removed (§2.4); derivation model (§2.5); `textual_observation` and `scholarly_interpretation` fields + CHECKs; `derivations` table; edge verification/evidence; rules X9–X10. Migration `0002`. | ADR-0011 |
 | 1.0.1 | M0 (recovery) | U6 clarified: explicit folded column; built-in `remove_diacritics` verified Latin-only. | ADR-0009 |
 | 1.0.0 | M0 | Initial specification: five layers, reference system, provenance model, relational schema, identifier policy, Unicode rules, migration policy, serialisation contract. | ADR-0007, ADR-0008 |

@@ -25,7 +25,7 @@ All Scriptura documentation.
 |---|---|
 | [architecture/README.md](architecture/README.md) | Specification index, identifier convention, change control, standing constraints |
 | [architecture/BKB-ARCH-001-system-architecture.md](architecture/BKB-ARCH-001-system-architecture.md) | System decomposition, process model, module boundaries, deployment, Gomine interoperability |
-| [architecture/BKB-DATA-001-data-model.md](architecture/BKB-DATA-001-data-model.md) | The five epistemic layers, references, provenance, relational schema, invariants |
+| [architecture/BKB-DATA-001-data-model.md](architecture/BKB-DATA-001-data-model.md) | The seven epistemic layers, references, provenance, relational schema, invariants |
 | [architecture/BKB-CORPUS-001-corpus-ingestion.md](architecture/BKB-CORPUS-001-corpus-ingestion.md) | Dataset lifecycle, licence gate, adapter contract, validation, provenance capture |
 | [architecture/BKB-AGENTS-001-agent-framework.md](architecture/BKB-AGENTS-001-agent-framework.md) | Agent contracts, capability boundaries, evidence obligations, human review |
 | [architecture/BKB-VERIFY-001-verification-framework.md](architecture/BKB-VERIFY-001-verification-framework.md) | Verification states, evidence chains, confidence, disagreement, assertion rules |

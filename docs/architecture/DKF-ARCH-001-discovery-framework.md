@@ -166,22 +166,29 @@ makes the eventual disposition meaningful.
 
 ### 5.1 The domains
 
-Discovery links across the five epistemic layers, and **the link inherits the weakest layer of its endpoints**.
+Discovery links across the seven epistemic layers. **A link's layer is assigned explicitly; it is NEVER
+inherited from its endpoints** -- there is no weakest-layer computation (ADR-0011, rules D1-D2).
 
-| Endpoint layers | Link layer |
+| Link situation | Link layer |
 |---|---|
-| `scripture` ↔ `scripture` | `scripture` only where an edition asserts the link; otherwise `ai_hypothesis` |
-| `scripture` ↔ `historical_evidence` | `historical_evidence` only where the evidence itself asserts it; otherwise `ai_hypothesis` |
-| `scripture` ↔ `linguistic_observation` | `linguistic_observation` where a dataset asserts it; otherwise `ai_hypothesis` |
-| anything ↔ `ai_hypothesis` | `ai_hypothesis` |
-| `theological_interpretation` ↔ anything | `theological_interpretation`, attributed |
+| Proposed by a discovery strategy | **Always `ai_hypothesis`**, whatever the endpoints are |
+| An edition itself asserts the relation | `scripture`, citing the edition |
+| A textual apparatus asserts the comparison | `textual_observation`, citing the apparatus |
+| A dataset asserts the linguistic relation | `linguistic_observation`, citing the dataset |
+| External evidence itself asserts the relation | `historical_evidence`, citing the evidence |
+| A named scholar argues it in a named work | `scholarly_interpretation`, attributed |
+| A named tradition holds it | `theological_interpretation`, attributed |
+| Any endpoint is `ai_hypothesis` (unverified chain) | `ai_hypothesis` |
+
+A link may only take a non-`ai_hypothesis` layer where **a source asserts the link itself**, not merely its
+endpoints, and where the derivation record records the inputs, method, and actor.
 
 ### 5.2 Rules
 
 | # | Rule |
 |---|---|
-| XL1 | A link proposed by a strategy is `ai_hypothesis`, regardless of how strong its endpoints are |
-| XL2 | A link may only take a stronger layer where a **source asserts the link**, not merely the endpoints |
+| XL1 | A link proposed by a strategy is `ai_hypothesis`, regardless of its endpoints |
+| XL2 | A link may only take a non-`ai_hypothesis` layer where a **source asserts the link**, and only with a derivation record preserving inputs, method, and actor |
 | XL3 | Cross-layer linking must never imply that evidence inherits scriptural authority |
 | XL4 | A link between `historical_evidence` and `scripture` never asserts that the evidence proves the scripture |
 | XL5 | Links carry provenance and confidence |

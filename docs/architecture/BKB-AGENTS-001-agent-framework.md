@@ -179,13 +179,22 @@ An agent's output is **admissible** only if all hold. Inadmissible output must n
 | E8 | Is flagged `non_authoritative` |
 | E9 | Contains **no generated scripture text** |
 | E10 | Contains **no unattributed theological interpretation** |
+| E10b | Contains **no unattributed scholarly interpretation** (named scholar/author and named work required) |
+| E10c | Mixed-layer research output is **decomposed** into typed records, or recorded with a derivation record preserving every input/output ID and layer |
 | E11 | Records what it could **not** verify |
 | E12 | Records null results as null |
 | E13 | Preserves disagreement rather than resolving it |
 | E14 | Contains no invented identifiers, sigla, DOIs, or catalogue numbers |
 
-E11–E14 are as binding as E1–E10. An agent that reports only what it found, and not what it failed to find, has
-not discharged its obligation.
+E10b–E14 are as binding as E1–E10. An agent that reports only what it found, and not what it failed to find,
+has not discharged its obligation.
+
+**Layer honesty under ADR-0011:** an agent's research output begins as `ai_hypothesis` and stays there. Citing
+sources or reporting a high confidence score does not make it a scholarly or theological finding. If the output
+draws on several layers, it is either decomposed into appropriately typed records or accompanied by a
+derivation record (BKB-DATA-001 section 2.5) naming every input and output with its layer. Any claim of
+independently verified scholarship requires genuine attribution to a responsible author, tradition, or
+publication, recorded as a **new** record with independent verification — never a relabel of the hypothesis.
 
 ---
 

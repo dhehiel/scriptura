@@ -42,10 +42,12 @@ and must never blur the boundary between them.
 | Layer | An agent may produce this when... |
 |---|---|
 | `scripture` | It is reproducing text from a named edition already present in the corpus, with the edition recorded. An agent may **never** generate scripture text from memory or from a model. |
+| `textual_observation` | It is recording what witnesses read, with the compared witnesses/editions and readings attributed to a named apparatus, dataset, or analyst. An agent never asserts which reading is original. |
+| `linguistic_observation` | It is reporting a morphological, syntactic, lexicographic, semantic, phonological, orthographic, or discourse analysis attributable to a named source or dataset. |
 | `historical_evidence` | It is citing a specific, named piece of external evidence with a resolvable reference. |
-| `linguistic_observation` | It is reporting a morphological, syntactic, or lexicographic analysis attributable to a named source or dataset. |
+| `scholarly_interpretation` | It is reporting an academic or critical position **attributed to a named scholar, named work, and publication metadata**. Unattributed scholarly interpretation is rejected; it is never interchangeable with a theological position. |
 | `theological_interpretation` | It is reporting an interpretation **attributed to a named tradition or author**. Unattributed interpretation is rejected. |
-| `ai_hypothesis` | It is the agent's own inference. This is the **default** layer for anything an agent generates. |
+| `ai_hypothesis` | It is the agent's own inference. This is the **default** layer for anything an agent generates — at any confidence score, and regardless of whether it cites sources. |
 
 **Mandatory defaults and prohibitions:**
 
@@ -198,7 +200,7 @@ Escalation is not failure. A guessed answer in this domain is failure.
 |---|---|
 | [.clinerules/000-project-governance.md](.clinerules/000-project-governance.md) | Mission, scope, decision rights, milestone gating |
 | [.clinerules/010-source-integrity.md](.clinerules/010-source-integrity.md) | Citation, quotation, provenance, anti-fabrication |
-| [.clinerules/020-epistemic-layers.md](.clinerules/020-epistemic-layers.md) | The five layers and their invariants |
+| [.clinerules/020-epistemic-layers.md](.clinerules/020-epistemic-layers.md) | The seven layers and their invariants |
 | [.clinerules/030-research-standards.md](.clinerules/030-research-standards.md) | Methodology, uncertainty, disagreement, null results |
 | [.clinerules/040-engineering.md](.clinerules/040-engineering.md) | Code, tests, migrations, dependencies, review |
 | [.clinerules/050-data-licensing.md](.clinerules/050-data-licensing.md) | Dataset-specific licensing and the ingestion gate |

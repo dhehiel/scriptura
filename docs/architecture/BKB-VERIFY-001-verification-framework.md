@@ -118,20 +118,25 @@ An evidence chain is an ordered list of links. Each link is:
 | EC8 | Chains are append-only. Correction is by appending |
 | EC9 | A chain is reproducible: the same links, consulted again, yield the same assessment |
 
-### 4.3 Evidence strength by layer
+### 4.3 What each layer can carry
+
+This table is **not** a ranking and imposes no ordering across layers (ADR-0011 section 2.4). It records what
+evidence of each *kind* is capable of supporting -- an independent dimension, never a determinant of layer.
 
 | Layer | Can support | Cannot support |
 |---|---|---|
 | `scripture` | What a named edition attests | What "the original" said; what is historically true |
+| `textual_observation` | What witnesses read, and that they differ | Which reading is original; that a variant is an error |
 | `historical_evidence` | External facts, with dating basis | Doctrinal claims |
 | `linguistic_observation` | Attested usage and analysis | Authorial intent as fact |
+| `scholarly_interpretation` | That a named scholar argues a position in a named work | That the argument is correct |
 | `theological_interpretation` | That a tradition holds a position | That the position is correct |
-| `ai_hypothesis` | Nothing above `weakly_supported` | Any authoritative claim |
+| `ai_hypothesis` | That a pattern was observed by a named model | Any authoritative claim, at any confidence score |
 
 This table is normative. A claim whose evidence chain cannot support its asserted state is **not** in that state,
-regardless of what is recorded.
+regardless of what is recorded. Evidence *quality* and *confidence* are independent metadata dimensions and
+never reclassify a record's layer.
 
----
 
 ## 5. Confidence
 

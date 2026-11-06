@@ -42,24 +42,35 @@ indistinguishable once queried together.
 Scriptura's foundational commitment is that these are **never** interchangeable, and the data model makes it
 structurally impossible to treat them as if they were.
 
-### The five epistemic layers
+### The seven epistemic layers
 
 Every record in Scriptura carries exactly one epistemic layer. Layers are enforced at the type level, at the
 storage level, and at the query level. See [BKB-DATA-001](docs/architecture/BKB-DATA-001-data-model.md).
 
 | Layer | What it is | Example | Authority |
 |---|---|---|---|
-| `scripture` | Text of a witness as attested by a **named edition** | "Codex Vaticanus reads *X* at John 1:18" | The edition is the authority, never "the Bible" |
-| `historical_evidence` | Material and documentary evidence **external** to scripture | An inscription, an ostracon, a dated papyrus, a historian's account | Evidence stands on its own; it does not inherit scriptural authority |
-| `linguistic_observation` | Morphology, syntax, lexicography, philology | "*monogenēs* parses as adjective, singular, nominative" | Analytical; contested readings carry competing analyses |
-| `theological_interpretation` | Interpretive positions of **named** traditions and authors | "Augustine reads this passage as Trinitarian" | Attributed to a tradition or author; never presented as fact |
-| `ai_hypothesis` | Machine-generated inference | A model's proposed intertextual link | **Always non-authoritative.** Must be flagged in every output |
+| `scripture` | Text as attested by a **named edition, translation, or manuscript witness** | "Codex Vaticanus reads *X* at John 1:18" | The edition is the authority, never "the Bible" |
+| `textual_observation` | Manuscript readings, textual variants, transmission phenomena, witness comparisons | "Witness A reads *X*; witnesses B/C read *Y* at John 1:18" | The witnesses compared and the analyst; never resolves a variant by preference |
+| `linguistic_observation` | Morphology, syntax, lexicography, semantics, phonology, orthography, discourse | "*monogenēs* parses as adjective, singular, nominative" | Analytical; contested readings carry competing analyses |
+| `historical_evidence` | Archaeological, documentary, inscriptional, material evidence external to scripture | An inscription, an ostracon, a dated papyrus, a historian's account | Evidence stands on its own; it does not inherit scriptural authority |
+| `scholarly_interpretation` | Academic and critical interpretations attributed to identifiable scholars, works, publications | "Author X argues in work Y that…" | Attributed to a named scholar and work; never presented as fact |
+| `theological_interpretation` | Interpretive positions of **named** traditions, authors, works, doctrinal frameworks | "Augustine reads this passage as Trinitarian" | Attributed to a tradition or author; never presented as fact |
+| `ai_hypothesis` | Machine-generated suggestions, inferences, patterns, proposed relationships | A model's proposed intertextual link | **Always non-authoritative.** Flagged in every output, at any confidence |
 
-Three rules follow, and they are enforced by code rather than by convention:
+**Layers classify the nature of a record, not its truth or authority. There is no ranking among them**
+(ADR-0011). Confidence, evidence quality, provenance, verification status, disagreement, tradition, and
+attribution are recorded as **independent dimensions** and never determine a record's layer.
 
-1. **No layer may be promoted to another.** An AI hypothesis cannot become a linguistic observation by being stored.
-2. **`ai_hypothesis` output must be flagged at every presentation boundary**, including API responses, exports, and reports.
-3. **`theological_interpretation` must carry an attribution.** An interpretation with no named tradition or author is rejected at validation.
+Four rules follow, and they are enforced by code rather than by convention:
+
+1. **No record changes layer by relabelling.** Layer change requires a new, independently authored and sourced
+   record, independent verification, and an auditable human decision. The original hypothesis is never erased.
+2. **`ai_hypothesis` output must be flagged at every presentation boundary**, including API responses, exports,
+   and reports — at any confidence score, and citing sources does not change this.
+3. **`theological_interpretation` and `scholarly_interpretation` must carry genuine attribution.**
+   Unattributed interpretation is rejected at validation; the two layers are never interchanged.
+4. **No automatic layer inheritance in derived records.** Mixed-layer research is decomposed into typed
+   records or recorded with a derivation preserving every input/output ID and layer (BKB-DATA-001 §2.5).
 
 ---
 
@@ -181,7 +192,7 @@ the specification wins and the implementation is a bug.
 | ID | Title | Governs |
 |---|---|---|
 | [BKB-ARCH-001](docs/architecture/BKB-ARCH-001-system-architecture.md) | System Architecture | Overall system decomposition, process model, module boundaries, Gomine interoperability |
-| [BKB-DATA-001](docs/architecture/BKB-DATA-001-data-model.md) | Data Model and Epistemic Layers | The five layers, provenance, references, relational schema, invariants |
+| [BKB-DATA-001](docs/architecture/BKB-DATA-001-data-model.md) | Data Model and Epistemic Layers | The seven layers, provenance, references, relational schema, invariants |
 | [BKB-CORPUS-001](docs/architecture/BKB-CORPUS-001-corpus-ingestion.md) | Corpus Ingestion | Dataset lifecycle, licence gate, adapters, validation, provenance capture |
 | [BKB-AGENTS-001](docs/architecture/BKB-AGENTS-001-agent-framework.md) | Research Agent Framework | Agent contracts, capability boundaries, evidence obligations, human review |
 | [BKB-VERIFY-001](docs/architecture/BKB-VERIFY-001-verification-framework.md) | Verification Framework | Claim verification, evidence chains, confidence, disagreement handling |

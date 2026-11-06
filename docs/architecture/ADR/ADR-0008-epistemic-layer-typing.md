@@ -3,11 +3,17 @@
 | Field | Value |
 |---|---|
 | **ID** | ADR-0008 |
-| **Status** | Accepted |
+| **Status** | **superseded** by [ADR-0011](ADR-0011-seven-layer-epistemic-model.md) |
 | **Date** | M0 |
 | **Deciders** | Maintainer |
 | **Affects** | BKB-DATA-001 §2, §6; all modules; all outputs |
 | **Supersedes** | — |
+| **Superseded by** | ADR-0011 — Seven-Layer Epistemic Model and Removal of Universal Ranking |
+
+> **Supersession note.** ADR-0011 supersedes this record: the layer set is expanded from five to seven values,
+> and the universal ranking (`LAYER_ORDER`, `layer_strength`, `weakest_layer`, `compose_layer`) introduced here
+> is removed. This document is retained unchanged as history. The storage-invariant principle it establishes
+> (layer typing enforced by SQL `CHECK` constraints) remains in force and is carried forward into ADR-0011.
 
 ## Context
 

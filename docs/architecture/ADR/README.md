@@ -21,9 +21,10 @@ Template: [ADR-TEMPLATE.md](ADR-TEMPLATE.md).
 | [ADR-0005](ADR-0005-no-graph-database.md) | No independent graph database | Accepted | BKB-ARCH-001 §5, DKF-ARCH-001 §10 |
 | [ADR-0006](ADR-0006-leann-optional-retrieval.md) | LEANN as an optional retrieval adapter | Accepted | BKB-ARCH-001 §7 |
 | [ADR-0007](ADR-0007-modular-knowledge-graph.md) | Modular knowledge graph in SQLite | Accepted | BKB-DATA-001 §6, DKF-ARCH-001 §10 |
-| [ADR-0008](ADR-0008-epistemic-layer-typing.md) | Epistemic layer typing as a storage invariant | Accepted | BKB-DATA-001 §2, all |
+| [ADR-0008](ADR-0008-epistemic-layer-typing.md) | Epistemic layer typing as a storage invariant | **superseded** by ADR-0011 | BKB-DATA-001 §2, all |
 | [ADR-0009](ADR-0009-fts5-primary-lexical-search.md) | SQLite FTS5 as primary lexical search | Accepted | BKB-ARCH-001 §7 |
 | [ADR-0010](ADR-0010-licence-gate.md) | Licence gate on all corpus ingestion | Accepted | BKB-CORPUS-001 §4 |
+| [ADR-0011](ADR-0011-seven-layer-epistemic-model.md) | Seven-layer epistemic model; removal of universal ranking | **proposed** | .clinerules/020, BKB-DATA-001, all layer consumers |
 
 Numbering is sequential and **never reused**, even for a rejected or retired ADR.
 
