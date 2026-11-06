@@ -69,7 +69,9 @@ class IngestionTest(unittest.TestCase):
 
     def test_validators(self):
         good = {"kind": "claim", "layer": "linguistic_observation",
-                "fields": {"observation_type": "morphology", "analyst": "a"},
+                "reference": {"book": "Jhn", "canon_profile": "protestant_66"},
+                "fields": {"language": "grc", "observation_type": "morphology",
+                            "analysis": "nom sg", "analyst": "a"},
                 "provenance": {"source_uri": "s", "source_kind": "generated",
                                 "content_hash": "sha256:" + "0" * 64,
                                 "actor": "t", "created_at": "2026"}}

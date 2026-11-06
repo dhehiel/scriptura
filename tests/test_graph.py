@@ -20,9 +20,24 @@ class GraphTest(unittest.TestCase):
                                  label="Gen 1:1", source_uri=URI, actor=ACTOR)
         self.h = self.g.add_node(kind="hypothesis", layer="ai_hypothesis",
                                  label="echo", source_uri=URI, actor=ACTOR)
+        # Authoritative (non-ai) edges require an authorised derivation (XL2).
+        import json as _json
+        from scriptura.core.hashing import content_hash
+        self.derivation_id = "deriv-test-1"
+        self.conn.execute(
+            "insert into derivations(id,output_ids,output_layers,input_ids,input_layers,"
+            "method,actor,created_at,source_uri,content_hash) values (?,?,?,?,?,?,?,?,?,?)",
+            (self.derivation_id,
+             _json.dumps([["edge-e1", "scripture"]]), _json.dumps(["scripture"]),
+             _json.dumps([[self.a.id, "scripture"], [self.b.id, "scripture"]]),
+             _json.dumps(["scripture", "scripture"]),
+             "edition_assertion", ACTOR, "2026", URI,
+             content_hash("edge-e1")),
+        )
         self.e1 = self.g.add_edge(source_node_id=self.a.id,
                                   target_node_id=self.b.id, relation="echoes",
-                                  layer="scripture", source_uri=URI, actor=ACTOR)
+                                  layer="scripture", source_uri=URI, actor=ACTOR,
+                                  derivation_id=self.derivation_id)
         self.e2 = self.g.propose_link(source_node_id=self.a.id,
                                       target_node_id=self.h.id,
                                       relation="proposes_link", source_uri=URI,
@@ -37,10 +52,43 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(self.e2.layer, "ai_hypothesis")
         self.assertFalse(self.e1.non_authoritative)
 
-    def test_derive_weakest(self):
+    def test_validate_edge_layer_no_inheritance(self):
+        # Explicit layer: no endpoint inheritance, no ranking (ADR-0011).
         from scriptura.core.layers import EpistemicLayer
-        self.assertEqual(self.g.derive_edge_layer([self.a.id, self.h.id]),
-                         EpistemicLayer.AI_HYPOTHESIS)
+        # a proposal is always permitted, whatever the endpoints are
+        self.assertEqual(
+            self.g.validate_edge_layer((self.a.id, self.h.id), "ai_hypothesis"),
+            EpistemicLayer.AI_HYPOTHESIS)
+        # a non-ai edge with an ai_hypothesis endpoint is refused
+        with self.assertRaises(GraphError):
+            self.g.validate_edge_layer((self.a.id, self.h.id), "scripture")
+        # a non-ai edge without a derivation is refused
+        with self.assertRaises(GraphError):
+            self.g.validate_edge_layer((self.a.id, self.b.id), "scripture")
+        # with the authorised derivation it passes
+        from scriptura.graph.model import DerivationRecord
+        from scriptura.core.layers import validate_derivation
+        derivation = DerivationRecord.from_dict({
+            "input_ids": [[self.a.id, "scripture"], [self.b.id, "scripture"]],
+            "input_layers": ["scripture", "scripture"],
+            "output_ids": [["edge-x", "scripture"]],
+            "output_layers": ["scripture"],
+            "method": "edition_assertion", "actor": ACTOR, "created_at": "2026",
+        })
+        self.assertEqual(
+            self.g.validate_edge_layer((self.a.id, self.b.id), "scripture", derivation),
+            EpistemicLayer.SCRIPTURE)
+
+    def test_edge_requires_derivation(self):
+        with self.assertRaises(GraphError):
+            self.g.add_edge(source_node_id=self.a.id, target_node_id=self.b.id,
+                            relation="reads", layer="textual_observation",
+                            source_uri=URI, actor=ACTOR)
+        with self.assertRaises(GraphError):
+            self.g.add_edge(source_node_id=self.a.id, target_node_id=self.b.id,
+                            relation="reads", layer="textual_observation",
+                            source_uri=URI, actor=ACTOR,
+                            derivation_id="nonexistent-derivation")
 
     def test_traversal_reports_layers(self):
         result = traverse(self.g, self.a.id, direction="both")

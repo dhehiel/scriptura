@@ -82,7 +82,15 @@ def validate_reference_value(value: Any, index: int) -> list[str]:
 
 
 def validate_record(record: Mapping[str, Any], index: int) -> list[str]:
-    """Validate one canonical record. Returns a list of problems (empty = valid)."""
+    """Validate one canonical record. Returns a list of problems (empty = valid).
+
+    Layer-specific requirements are evaluated against the MERGED view of the
+    record: layer ``fields`` plus the canonical-level ``reference``, the
+    provenance ``source_uri``, and the ``statement`` (which carries the
+    interpretive argument for scholarly and theological records; the spec name
+    ``position`` is an alias for it). This lets one requirement table serve all
+    seven layers without forcing inapplicable fields to exist.
+    """
     problems: list[str] = []
     if not isinstance(record, Mapping):
         return [f"record {index}: record must be a mapping"]
@@ -90,10 +98,26 @@ def validate_record(record: Mapping[str, Any], index: int) -> list[str]:
     if kind not in ("corpus", "claim"):
         problems.append(f"record {index}: kind must be 'corpus' or 'claim'")
     layer = record.get("layer")
-    fields = record.get("fields")
-    if not isinstance(fields, Mapping):
+    raw_fields = record.get("fields")
+    if not isinstance(raw_fields, Mapping):
         problems.append(f"record {index}: fields must be a mapping")
-        fields = {}
+        raw_fields = {}
+    fields: dict[str, Any] = dict(raw_fields)
+    # Canonical-level fields layer requirements may reference.
+    reference = record.get("reference")
+    if reference is not None:
+        fields.setdefault("reference", reference)
+    provenance = record.get("provenance")
+    if isinstance(provenance, Mapping) and provenance.get("source_uri"):
+        fields.setdefault("source_uri", provenance["source_uri"])
+    statement = record.get("statement")
+    if statement is None:
+        statement = raw_fields.get("statement")
+    if statement is not None:
+        fields.setdefault("statement", statement)
+        # The interpretive argument is stored in `statement`; the spec's
+        # `position` name is an alias for it.
+        fields.setdefault("position", statement)
     try:
         validate_layer_fields(layer, fields)
     except ValidationError as exc:
@@ -102,6 +126,6 @@ def validate_record(record: Mapping[str, Any], index: int) -> list[str]:
         text = fields.get("text", "")
         if not isinstance(text, str) or not text.strip():
             problems.append(f"record {index}: scripture text must be non-empty")
-    problems.extend(validate_provenance(record.get("provenance"), index))
+    problems.extend(validate_provenance(provenance, index))
     problems.extend(validate_reference_value(record.get("reference"), index))
     return problems

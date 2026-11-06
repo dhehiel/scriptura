@@ -2,12 +2,14 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://scriptura.example/schemas/core/epistemic-layer.schema.json",
   "title": "Scriptura Epistemic Layer",
-  "description": "The closed set of epistemic layers. Normative source: BKB-DATA-001 section 2. The set is closed; adding a value requires an accepted ADR.",
+  "description": "The closed set of seven epistemic layers (ADR-0011, supersedes ADR-0008). Normative source: BKB-DATA-001 section 2. The set is closed; adding a value requires an accepted ADR. Layers classify the nature of a record, not its truth or authority; there is no ranking among them.",
   "type": "string",
   "enum": [
     "scripture",
-    "historical_evidence",
+    "textual_observation",
     "linguistic_observation",
+    "historical_evidence",
+    "scholarly_interpretation",
     "theological_interpretation",
     "ai_hypothesis"
   ]

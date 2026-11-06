@@ -28,10 +28,10 @@ class MigrationTest(unittest.TestCase):
 
     def test_apply_and_reapply(self):
         self.assertEqual([m.filename for m in apply_migrations(self.conn)],
-                         ["0001_bootstrap.sql"])
-        self.assertEqual(schema_version(self.conn), 1)
+                         ["0001_bootstrap.sql", "0002_seven_layer_epistemic_model.sql"])
+        self.assertEqual(schema_version(self.conn), 2)
         self.assertEqual(apply_migrations(self.conn), ())
-        self.assertEqual(len(verify_ledger(self.conn)), 1)
+        self.assertEqual(len(verify_ledger(self.conn)), 2)
 
     def test_tables_exist(self):
         apply_migrations(self.conn)
@@ -41,7 +41,7 @@ class MigrationTest(unittest.TestCase):
                          "canonical_references", "editions", "witnesses",
                          "corpus_records", "claims", "nodes", "edges",
                          "provenance_events", "ingestion_runs",
-                         "identifier_mappings"):
+                         "identifier_mappings", "derivations"):
             self.assertIn(expected, tables)
 
     def test_foreign_keys_on(self):
@@ -59,7 +59,7 @@ class MigrationTest(unittest.TestCase):
             shutil.copy(pathlib.Path(
                 "src/scriptura/storage/migrations/0001_bootstrap.sql"), fake / "0001_bootstrap.sql")
             # sanity: genuine dir verifies
-            self.assertEqual(len(verify_ledger(self.conn)), 1)
+            self.assertEqual(len(verify_ledger(self.conn)), 2)
 
     def test_duplicate_sequence_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -70,7 +70,7 @@ class MigrationTest(unittest.TestCase):
                 discover_migrations(d)
 
     def test_pending(self):
-        self.assertEqual(len(pending_migrations(self.conn)), 1)
+        self.assertEqual(len(pending_migrations(self.conn)), 2)
         apply_migrations(self.conn)
         self.assertEqual(pending_migrations(self.conn), ())
 
