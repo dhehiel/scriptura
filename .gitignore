@@ -24,12 +24,16 @@ htmlcov/
 # Landing zones stay in the tree via .gitkeep; all content is ignored.
 datasets/raw/*
 !datasets/raw/.gitkeep
+!datasets/raw/README.md
 datasets/interim/*
 !datasets/interim/.gitkeep
+!datasets/interim/README.md
 datasets/processed/*
 !datasets/processed/.gitkeep
+!datasets/processed/README.md
 datasets/third_party/*
 !datasets/third_party/.gitkeep
+!datasets/third_party/README.md
 # --- Agent run artefacts (gitignored by design; see BKB-AGENTS-001 section 8) ---
 agents/runs/*
 !agents/runs/.gitkeep

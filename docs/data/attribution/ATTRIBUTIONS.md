@@ -65,12 +65,16 @@ Verbatim, from the repository README:
 
 > And you should:
 >
-> * **Credit it** to "STEP Bible" linked to www.STEPBible.org
+> * **Credit it** to "STEP Bible" linked to `www.STEPBible.org`
+>   (bare hostname in the upstream original; rendered as code, not a link,
+>   because the upstream text carries no URL scheme)
 
 The README also states, verbatim:
 
-> Data created initially by [Tyndale House Cambridge](www.tyndalehouse.com) now curated by
-> [www.STEPBible.org](www.STEPBible.org)
+> Data created initially by Tyndale House Cambridge (`www.tyndalehouse.com`)
+> now curated by `www.STEPBible.org`
+> (bare hostnames in the upstream original; rendered as code, not links,
+> because the upstream text carries no URL scheme)
 
 And makes two accompanying requests, which Scriptura will honour:
 

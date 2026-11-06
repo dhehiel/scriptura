@@ -1,0 +1,23 @@
+name: Architecture decision proposal
+about: Propose a decision that needs an ADR.
+title: "[adr] "
+labels: [adr]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem (not the preferred solution)
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and forces, with sources
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered (mandatory for the ADR)
+  - type: textarea
+    id: affected
+    attributes:
+      label: Affected specifications, modules, and rules

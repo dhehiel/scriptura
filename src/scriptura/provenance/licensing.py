@@ -120,6 +120,13 @@ class LicensingStore:
     def registry_gate_open(self) -> bool:
         return bool(self.registry.get("ingestion_gate_open", False))
 
+    def ingestible_sources(self) -> tuple[str, ...]:
+        """Source ids flagged ingestible in the registry.
+
+        This is registry DATA, not a gate decision. The gate re-checks everything.
+        """
+        return tuple(sid for sid, s in self._sources.items() if bool(s.get("ingestible")))
+
 
     def evaluate(
         self, dataset_id: str, authorised: Sequence[str] | None = None

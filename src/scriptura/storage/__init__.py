@@ -17,6 +17,7 @@ from .migrations import (
     schema_version,
     verify_ledger,
 )
+from .seeds import seed_reference_data
 from .sqlite import (
     PlatformCapabilities,
     capability_report,
@@ -37,6 +38,7 @@ __all__ = [
     "pending_migrations",
     "schema_version",
     "verify_ledger",
+    "seed_reference_data",
     "PlatformCapabilities",
     "capability_report",
     "connect",

@@ -1,0 +1,74 @@
+name: Dataset addition proposal
+about: Propose a corpus source. Licence evidence is MANDATORY.
+description: Proposals without primary-source licence evidence will be closed.
+title: "[dataset] "
+labels: [dataset]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Dataset name and exact edition/version/release
+      description: '"The Greek NT" is not a dataset. Name the edition.'
+    validations:
+      required: true
+  - type: textarea
+    id: holder
+    attributes:
+      label: Rights holder (as stated by the rights holder)
+    validations:
+      required: true
+  - type: input
+    id: licence
+    attributes:
+      label: Licence, exactly as written (name and version)
+      description: e.g. CC BY 4.0, CC BY-SA 4.0, CC BY-NC 4.0, CC0, public domain, MIT.
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Primary source URL (the rights holder's own statement)
+      description: Not an aggregator, mirror, catalogue, or forum post.
+    validations:
+      required: true
+  - type: input
+    id: date
+    attributes:
+      label: Retrieval date (when you actually read it)
+    validations:
+      required: true
+  - type: textarea
+    id: quote
+    attributes:
+      label: Verbatim quotation of the licence statement
+    validations:
+      required: true
+  - type: textarea
+    id: attribution
+    attributes:
+      label: Verbatim attribution string (if the licence requires one)
+  - type: dropdown
+    id: derivatives
+    attributes:
+      label: Derivatives permitted?
+      options: [yes, no, unclear]
+    validations:
+      required: true
+  - type: dropdown
+    id: commercial
+    attributes:
+      label: Commercial use permitted?
+      options: [yes, no, unclear]
+    validations:
+      required: true
+  - type: dropdown
+    id: sharealike
+    attributes:
+      label: Share-alike?
+      options: [yes, no, unclear]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Jurisdictional caveats, layered rights, anything else

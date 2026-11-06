@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scriptura"
+version = "0.1.0"
+description = "An open, extensible Biblical Knowledge and Research Infrastructure"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+# ZERO mandatory runtime dependencies at M0 (ADR-0002). This list is
+# intentionally empty. Adding a dependency requires an accepted ADR.
+dependencies = []
+authors = [{ name = "The Scriptura Authors" }]
+
+[project.optional-dependencies]
+# Optional semantic retrieval backend (ADR-0006). Import-guarded; absent by default.
+leann = ["leann>=0.3.0"]
+# Optional HTTP surface (ADR-0004). Gated; NOT adopted at M0.
+fastapi = ["fastapi>=0.100"]
+# Development and CI tooling only. NEVER imported by runtime code.
+dev = ["pytest>=7", "ruff>=0.1", "mypy>=1.0"]
+
+[project.urls]
+Homepage = "https://github.com/dhehiel/scriptura"
+Repository = "https://github.com/dhehiel/scriptura"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_unused_configs = true
+ignore_missing_imports = true
