@@ -120,6 +120,9 @@ class LicensingStore:
     def registry_gate_open(self) -> bool:
         return bool(self.registry.get("ingestion_gate_open", False))
 
+    def _manifest_datasets(self) -> tuple:
+        return tuple(self.manifest.get("datasets", []))
+
     def ingestible_sources(self) -> tuple[str, ...]:
         """Source ids flagged ingestible in the registry.
 

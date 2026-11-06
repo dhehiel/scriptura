@@ -15,6 +15,7 @@ from .interface import (
 )
 from .leann_adapter import (
     LeannAdapter,
+    LeannUnavailableError,
     leann_available,
     leann_version,
 )
@@ -27,6 +28,7 @@ __all__ = [
     "RetrievalBackend",
     "RetrievalResult",
     "LeannAdapter",
+    "LeannUnavailableError",
     "leann_available",
     "leann_version",
     "RetrievalRouter",
