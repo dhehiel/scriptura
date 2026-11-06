@@ -16,6 +16,7 @@ from .fts import (
     phrase_query,
     prefix_query,
     fold_diacritics,
+    verify_byte_exact,
 )
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "phrase_query",
     "prefix_query",
     "fold_diacritics",
+    "verify_byte_exact",
 ]
