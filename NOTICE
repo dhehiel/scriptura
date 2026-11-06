@@ -151,18 +151,25 @@ annotation, or interpretation in Scriptura does not constitute endorsement of
 its accuracy, authority, canonicity, or doctrinal position by the project or by
 any contributor.
 
-Scriptura deliberately and permanently separates five epistemic layers, and no
+Scriptura deliberately and permanently separates seven epistemic layers, and no
 tooling, query, report, or agent output may collapse them:
 
-  * scripture                  - text of a witness, as attested by a named edition
+  * scripture                  - text as attested by a named edition, translation, or witness
+  * textual_observation        - manuscript readings, variants, and witness comparisons
+  * linguistic_observation     - morphology, syntax, lexicography, semantics, phonology, orthography
   * historical_evidence        - material and documentary evidence external to scripture
-  * linguistic_observation     - morphology, syntax, lexicography, philology
+  * scholarly_interpretation   - academic positions of named scholars, works, and publications
   * theological_interpretation - interpretive positions of named traditions and authors
   * ai_hypothesis              - machine-generated inference, always flagged as non-authoritative
 
+These layers classify the nature of a record, not its truth or authority. There
+is no ranking among them: confidence, evidence quality, provenance,
+verification status, disagreement, tradition, and attribution are independent
+dimensions and never determine a record's layer (ADR-0011).
+
 This separation is normative, not advisory. It is specified in
-docs/architecture/BKB-DATA-001, enforced by src/scriptura/core/layers.py, and
-governed by .clinerules/020-epistemic-layers.md.
+docs/architecture/BKB-DATA-001 and docs/architecture/ADR/ADR-0011, enforced by
+src/scriptura/core/layers.py, and governed by .clinerules/020-epistemic-layers.md.
 
 ---------------------------------------------------------------------------
 

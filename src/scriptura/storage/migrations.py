@@ -175,8 +175,22 @@ def apply_migrations(
                 (migration.sequence, migration.name, started, migration.sha256),
             )
             conn.execute("commit")
+            conn.execute("pragma foreign_keys = ON")
         except sqlite3.Error as exc:
-            conn.execute("rollback")
+            # executescript() commits any pending transaction before running, so
+            # a failure may leave no active transaction. Rollback defensively and
+            # surface the ORIGINAL error, never a secondary rollback error.
+            try:
+                conn.execute("rollback")
+            except sqlite3.Error:
+                pass
+            # Migration SQL may toggle PRAGMA foreign_keys for table rebuilds;
+            # always re-assert enforcement so a failed migration never leaves the
+            # connection (or any later use of it) running without FK checks.
+            try:
+                conn.execute("pragma foreign_keys = ON")
+            except sqlite3.Error:
+                pass
             raise MigrationError(
                 f"Migration {migration.filename} failed: {exc}"
             ) from exc

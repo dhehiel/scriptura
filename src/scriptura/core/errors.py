@@ -14,6 +14,8 @@ __all__ = [
     "ConfigurationError",
     "ValidationError",
     "LayerValidationError",
+    "PromotionError",
+    "DerivationError",
     "ReferenceError",
     "ProvenanceError",
     "LicenceError",
@@ -56,6 +58,23 @@ class LayerValidationError(ValidationError):
     """An epistemic layer invariant was violated.
 
     See BKB-DATA-001 section 2 and .clinerules/020-epistemic-layers.md.
+    """
+
+
+class PromotionError(LayerValidationError):
+    """A layer change by relabelling was refused (invariant L7, ADR-0011).
+
+    Subclass of :class:`LayerValidationError` so existing handlers keep working;
+    named separately so audits can distinguish refusals of layer changes from
+    other layer-validation failures.
+    """
+
+
+class DerivationError(ValidationError):
+    """A derivation record failed validation (BKB-DATA-001 section 2.5).
+
+    Raised when inputs/outputs, method, actor, timestamps, verification fields,
+    or preserved disagreements are missing or malformed.
     """
 
 

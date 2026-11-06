@@ -144,8 +144,44 @@ Ingestion is permitted only if **all** hold. Enforced by `src/scriptura/provenan
 | G8 | Share-alike status is recorded and its consequences stated |
 | G9 | The milestone gate for ingestion is open |
 | G10 | The maintainer has authorised ingestion **of this dataset**, individually |
+| G11 | **Every applicable licence passes.** Where a dataset carries more than one licence (for example a text licence and a separate annotation licence, or per-item licences inside an aggregator), **each** applicable licence record must be `verified` and compatible. If **even one** applicable licence is unresolved, disputed, restricted, or incompatible, the whole dataset is blocked |
 
-### 4.2 Gate behaviour
+### 4.2 Multi-licence datasets
+
+Composite datasets are licensed in layers and are evaluated **layer by layer**:
+
+- The underlying text and any added annotation, morphological tagging, or editorial apparatus may carry
+  different licences. **Both** must be resolved to `verified` before ingestion.
+- An aggregator that licenses per item yields no collection-level licence; every item actually used needs its
+  own record.
+- The gate evaluates **all** licence records whose `applies_to` includes the dataset. The dataset is refused if
+  **any** of them fails G3–G8.
+- A share-alike or non-commercial restriction on **any** layer attaches to the whole ingestible product and is
+  recorded on the manifest.
+- Licence compatibility is checked, not assumed: a permissive text combined with a share-alike annotation
+  yields a share-alike product, not a permissive one.
+
+This rule is enforced by `provenance/licensing.py` (`evaluate()` refuses when any applicable licence is
+unresolved) and tested by `tests/test_licensing.py` (multi-licence evaluation).
+
+### 4.3 Pipeline stages and implementation status
+
+The pipeline distinguishes five stages, which must not be conflated:
+
+| Stage | Meaning | Implemented at M0 |
+|---|---|---|
+| **Preflight validation** | Licence gate (G1–G11) evaluated before any retrieval | Yes |
+| **Conversion** | Adapter converts already-retrieved bytes to canonical records | Yes (contract + synthetic adapter in tests) |
+| **Transactional loading** | Accepted records written to `corpus_records`/`claims` inside one transaction | **No — not implemented** |
+| **Manifest persistence** | Dataset manifest (metadata only) written | Prepared, not persisted |
+| **Completed ingestion** | All of the above succeeded; `ingestion_runs.status = completed` | **No** |
+
+**The current implementation performs preflight validation and preparation only.** It evaluates the gate,
+runs conversion, validates records, and constructs a manifest; `IngestionResult.loaded` is `false` and no
+adapter writes corpus rows. Real corpus ingestion remains disabled. This specification does not claim a fully
+implemented ingestion engine.
+
+### 4.4 Gate behaviour
 
 ```python
 # Normative behaviour
@@ -164,7 +200,7 @@ if not result.permitted:
 | GT6 | The gate is re-evaluated on every ingestion attempt. A cached permission is not a permission |
 | GT7 | The gate lives in `provenance`, not in `ingestion`. A gate inside the thing it gates is not a gate |
 
-### 4.3 Share-alike and non-commercial handling
+### 4.5 Share-alike and non-commercial handling
 
 | Licence property | Consequence at ingestion |
 |---|---|

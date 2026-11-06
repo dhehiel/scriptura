@@ -27,8 +27,9 @@ from ..core.hashing import content_hash, mint_identifier
 from ..core.layers import (
     EpistemicLayer,
     coerce_layer,
-    compose_layer,
     require_flag,
+    validate_derivation,
+    DerivationRecord,
 )
 
 __all__ = [
@@ -48,6 +49,8 @@ NODE_KINDS: frozenset[str] = frozenset({
     "reference", "edition", "witness", "term", "lemma", "person", "place",
     "event", "evidence", "interpretation", "tradition", "hypothesis", "dataset",
     "concept",
+    # Seven-layer extensions (ADR-0011): textual criticism and scholarship.
+    "reading", "variant", "apparatus", "manuscript", "scholar", "publication",
 })
 
 #: Registered edge relations. Extension is by addition at this seam.
@@ -56,6 +59,12 @@ EDGE_RELATIONS: frozenset[str] = frozenset({
     "echoes", "refers_to", "located_in", "participates_in", "dated_to", "interprets",
     "held_by", "derived_from", "supports", "contradicts", "qualifies", "contextualises",
     "proposes_link", "variant_of", "same_lemma", "occurs_in",
+    # Typed relations for the seven-layer model (ADR-0011 / BKB-DATA-001 6.5):
+    # witness attests reading; textual observation compares readings; linguistic
+    # observation analyses a form; scholarly interpretation argues_for an
+    # explanation; theological interpretation interprets a passage; AI hypothesis
+    # proposes a possible relationship.
+    "compares", "argues_for", "proposes", "analyses",
 })
 
 #: Default traversal bounds. Unbounded traversal over a graph is both a
@@ -148,6 +157,11 @@ class Edge:
     created_at: str
     confidence: float | None = None
     payload: Mapping[str, Any] | None = None
+    #: Independent dimensions retained on every relationship (BKB-DATA-001 6.5).
+    verification_status: str | None = None
+    supporting_evidence: str | None = None
+    #: Non-ai_hypothesis edges must trace to an authorised derivation record.
+    derivation_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -158,6 +172,9 @@ class Edge:
             "layer": self.layer,
             "non_authoritative": self.non_authoritative,
             "confidence": self.confidence,
+            "verification_status": self.verification_status,
+            "supporting_evidence": self.supporting_evidence,
+            "derivation_id": self.derivation_id,
             "source_uri": self.source_uri,
             "content_hash": self.content_hash,
             "actor": self.actor,
@@ -279,16 +296,24 @@ class KnowledgeGraph:
         payload: Mapping[str, Any] | None = None,
         edge_id: str | None = None,
         created_at: str | None = None,
+        verification_status: str | None = None,
+        supporting_evidence: str | None = None,
+        derivation_id: str | None = None,
     ) -> Edge:
         """Add an edge.
 
-        A link proposed by a discovery strategy is ``ai_hypothesis`` regardless of how
-        strong its endpoints are (DKF-ARCH-001 rule XL1). The flag is derived from the
-        layer. Self-edges are prohibited.
+        A link proposed by a discovery strategy is ``ai_hypothesis`` (DKF-ARCH-001
+        rule XL1); the flag is derived from the layer. Self-edges are prohibited.
+
+        **No agent writes authoritative edges directly** (ADR-0011, DKF XL2): an
+        edge whose layer is NOT ``ai_hypothesis`` must carry a ``derivation_id``
+        referencing an authorised derivation record, and the endpoint rule of
+        :meth:`validate_edge_layer` must hold.
 
         Raises:
             GraphError: if the relation is unregistered, the endpoints are identical,
-                a required field is empty, or confidence is out of range.
+                a required field is empty, confidence is out of range, or a
+                non-hypothesis edge lacks an authorised derivation.
         """
         resolved_relation = (relation or "").strip()
         if resolved_relation not in _valid_edge_relations():
@@ -321,6 +346,12 @@ class KnowledgeGraph:
                     f"Edge endpoint {endpoint!r} does not exist. Foreign keys are "
                     f"enforced; an edge cannot reference a node that is not there."
                 )
+        # Authoritative (non-hypothesis) edges require an authorised derivation.
+        if resolved_layer is not EpistemicLayer.AI_HYPOTHESIS:
+            self.validate_edge_layer(
+                (source_node_id, target_node_id), resolved_layer,
+                derivation=self._load_derivation(derivation_id),
+            )
 
         payload_json = (
             json.dumps(payload, sort_keys=True, ensure_ascii=False) if payload else None
@@ -339,12 +370,14 @@ class KnowledgeGraph:
         self.conn.execute(
             "insert into edges(id, source_node_id, target_node_id, relation, layer, "
             "non_authoritative, confidence, payload_json, source_uri, content_hash, "
-            "actor, created_at) values (?,?,?,?,?,?,?,?,?,?,?,?)",
+            "actor, created_at, verification_status, supporting_evidence, derivation_id) "
+            "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 eid, source_node_id, target_node_id, resolved_relation,
                 resolved_layer.value, 1 if require_flag(resolved_layer) else 0,
                 None if confidence is None else float(confidence), payload_json,
                 source_uri, digest, actor, stamp,
+                verification_status, supporting_evidence, derivation_id,
             ),
         )
         return Edge(
@@ -379,18 +412,87 @@ class KnowledgeGraph:
             source_uri=source_uri, actor=actor, confidence=confidence, payload=payload,
         )
 
-    def derive_edge_layer(self, endpoint_ids: Sequence[str]) -> EpistemicLayer:
-        """Return the layer an edge must take, given its endpoints.
+    def _load_derivation(self, derivation_id: str | None) -> DerivationRecord | None:
+        """Load and validate a derivation record by id, or None if absent."""
+        if not derivation_id:
+            return None
+        row = self.conn.execute(
+            "select id, output_ids, output_layers, input_ids, input_layers, method, "
+            "parameters_json, actor, tool_identity, tool_version, created_at, "
+            "verification_state, reviewer, decision_authority, evidence_json, "
+            "disagreements_json from derivations where id = ?",
+            (derivation_id,),
+        ).fetchone()
+        if row is None:
+            raise GraphError(
+                f"Derivation {derivation_id!r} does not exist. An authoritative edge "
+                f"must trace to an authorised derivation record."
+            )
+        import json as _json
+        data = {
+            "input_ids": _json.loads(row[3]), "input_layers": _json.loads(row[4]),
+            "output_ids": _json.loads(row[1]), "output_layers": _json.loads(row[2]),
+            "method": row[5], "parameters": _json.loads(row[6]) if row[6] else None,
+            "actor": row[7], "tool_identity": row[8], "tool_version": row[9],
+            "created_at": row[10], "verification_state": row[11],
+            "reviewer": row[12], "decision_authority": row[13],
+            "evidence": _json.loads(row[14]) if row[14] else [],
+            "disagreements": _json.loads(row[15]) if row[15] else [],
+        }
+        return validate_derivation(DerivationRecord.from_dict(data))
 
-        A link inherits the WEAKEST layer of its endpoints (DKF-ARCH-001 section 5.1).
+    def validate_edge_layer(
+        self,
+        endpoint_ids: Sequence[str],
+        proposed_layer: Any,
+        derivation: DerivationRecord | None = None,
+    ) -> EpistemicLayer:
+        """Validate an explicitly proposed edge layer (ADR-0011, DKF XL1-XL2).
+
+        There is NO endpoint-inheritance and NO ranking: the layer is an explicit
+        input. Rules:
+
+        - ``ai_hypothesis`` edges are proposals and always permitted (XL1).
+        - Any other layer requires an authorised derivation record (XL2).
+        - If ANY endpoint is ``ai_hypothesis`` (an unverified chain), the edge is
+          ``ai_hypothesis`` regardless of what a source says about the endpoints.
+        - No edge may take ``scripture`` from a generated chain.
+
+        Raises:
+            GraphError: if an endpoint is missing, the derivation is absent or
+                invalid, or an endpoint rule is violated.
         """
-        layers = []
+        proposed = coerce_layer(proposed_layer)
+        endpoint_layers: list[str] = []
         for node_id in endpoint_ids:
             node = self.get_node(node_id)
             if node is None:
                 raise GraphError(f"Endpoint {node_id!r} does not exist.")
-            layers.append(node.layer)
-        return compose_layer(layers)
+            endpoint_layers.append(node.layer)
+
+        if proposed is EpistemicLayer.AI_HYPOTHESIS:
+            return proposed  # a proposal, whatever the endpoints are
+
+        if any(lay == EpistemicLayer.AI_HYPOTHESIS.value for lay in endpoint_layers):
+            raise GraphError(
+                "A link with an ai_hypothesis endpoint (an unverified chain) must "
+                "itself be ai_hypothesis. A source cannot upgrade a hypothesis by "
+                "mentioning its endpoints (DKF-ARCH-001 XL1)."
+            )
+        if derivation is None:
+            raise GraphError(
+                f"A non-ai_hypothesis edge requires an authorised derivation record "
+                f"(proposed layer {proposed.value!r}). No agent writes authoritative "
+                f"graph records without validation and verification."
+            )
+        validate_derivation(derivation)
+        if proposed is EpistemicLayer.SCRIPTURE:
+            if any("model" in str(d) for d in derivation.evidence) or derivation.machine_generated:
+                raise GraphError(
+                    "A generated chain may never yield a scripture edge: scripture "
+                    "text/relations are always sourced from a named edition."
+                )
+        return proposed
 
     def edges_from(
         self, node_id: str, relation: str | None = None,
@@ -413,7 +515,8 @@ class KnowledgeGraph:
         sql = (
             "select id, source_node_id, target_node_id, relation, layer, "
             "non_authoritative, confidence, payload_json, source_uri, content_hash, "
-            f"actor, created_at from edges where {column} = ?"
+            "actor, created_at, verification_status, supporting_evidence, "
+            f"derivation_id from edges where {column} = ?"
         )
         params: list[Any] = [node_id]
         if relation is not None:
@@ -434,6 +537,8 @@ class KnowledgeGraph:
             layer=row[4], non_authoritative=bool(row[5]), confidence=row[6],
             payload=json.loads(row[7]) if row[7] else None, source_uri=row[8],
             content_hash=row[9], actor=row[10], created_at=row[11],
+            verification_status=row[12], supporting_evidence=row[13],
+            derivation_id=row[14],
         )
 
     # ----------------------------------------------------------------- counts ----

@@ -97,3 +97,51 @@ class ApiTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ExternalBindingTest(unittest.TestCase):
+    """Non-loopback binding is REJECTED BY DEFAULT (directive section 10):
+    the default remains loopback-only, an override flag is never sufficient,
+    and external binding fails closed until an approved ADR exists."""
+
+    def test_default_host_is_loopback(self):
+        from scriptura.api.server import DEFAULT_HOST, is_loopback
+        self.assertEqual(DEFAULT_HOST, "127.0.0.1")
+        self.assertTrue(is_loopback(DEFAULT_HOST))
+        self.assertTrue(is_loopback("localhost"))
+        self.assertTrue(is_loopback("::1"))
+        self.assertFalse(is_loopback("0.0.0.0"))
+        self.assertFalse(is_loopback("192.168.1.10"))
+
+    def test_external_refused_by_default(self):
+        from scriptura.api.server import (
+            APPROVED_EXTERNAL_BINDING_ADRS, ExternalBindingRefused,
+            check_external_binding, serve,
+        )
+        permitted, unmet = check_external_binding("0.0.0.0")
+        self.assertFalse(permitted)
+        self.assertEqual(len(unmet), 5)
+        # serve refuses BEFORE any socket is opened
+        with self.assertRaises(ExternalBindingRefused) as ctx:
+            serve("/nonexistent-scriptura.db", "0.0.0.0", 18990)
+        self.assertIn("allow_non_loopback", " ".join(ctx.exception.unmet_conditions))
+        # no approved ADR exists: the gate cannot be satisfied today
+        self.assertEqual(set(APPROVED_EXTERNAL_BINDING_ADRS), set())
+
+    def test_flag_alone_is_never_sufficient(self):
+        from scriptura.api.server import check_external_binding
+        # all four operator conditions + an (unapproved) ADR name: still refused
+        permitted, unmet = check_external_binding(
+            "0.0.0.0", allow_non_loopback=True, security_config={"tls": False},
+            auth_design="design doc", operator_acknowledgement=True,
+            external_binding_adr="ADR-9999-external-binding")
+        self.assertFalse(permitted)
+        self.assertEqual(len(unmet), 1)
+        self.assertIn("approved external-binding ADR", unmet[0])
+
+    def test_loopback_passes_without_any_conditions(self):
+        from scriptura.api.server import check_external_binding
+        permitted, unmet = check_external_binding("127.0.0.1")
+        self.assertTrue(permitted)
+        self.assertEqual(unmet, ())
+

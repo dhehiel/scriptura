@@ -67,6 +67,12 @@ Rules:
 7. Prefer pure functions; isolate I/O at module boundaries.
 8. No new conventions in drive-by changes.
 9. `ruff` and `mypy` are configured in `pyproject.toml`. Advisory at M0; gating once available in CI.
+10. **No epistemic-layer ranking API.** `LAYER_ORDER`, `layer_strength`, `weakest_layer`, and
+    `compose_layer` do not exist and must not be reintroduced under another name (ADR-0011). Confidence,
+    evidence quality, and verification status are independent dimensions and never determine a layer.
+11. **Layer changes are by new record, never by relabelling.** A layer change requires a new independently
+    authored and sourced record, independent verification, and an auditable human decision; the original is
+    never erased.
 
 ## 5. Data and schema rules
 

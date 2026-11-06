@@ -64,9 +64,11 @@ class _FtsBackend:
         return tuple(
             RetrievalResult(
                 record_id=h.record_id, layer=h.layer,
-                non_authoritative=(h.layer == "ai_hypothesis"), text=h.text,
+                non_authoritative=h.non_authoritative, text=h.text,
                 score=h.rank, backend=self.backend_id,
                 extra={"edition_id": h.edition_id, "reference": h.reference_display},
+                edition_source=h.edition_id or h.source_uri,
+                verification_status=h.verification_status,
             )
             for h in hits
         )

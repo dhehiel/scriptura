@@ -164,7 +164,7 @@ These do not lapse when a milestone opens. Relaxing any requires an accepted ADR
 |---|---|
 | 1 | No corpus bytes committed to version control, ever |
 | 2 | No ingestion without a `verified` licence, an open gate, and per-dataset human authorisation |
-| 3 | No collapse of the five epistemic layers |
+| 3 | No collapse of the seven epistemic layers |
 | 4 | No unflagged `ai_hypothesis` output |
 | 5 | No unattributed `theological_interpretation` |
 | 6 | No generated scripture text |

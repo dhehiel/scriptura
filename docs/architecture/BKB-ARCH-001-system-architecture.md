@@ -281,10 +281,17 @@ mode. Semantic retrieval is complementary, not substitutive. See
 
 ### 8.2 HTTP surface
 
-- Read-only. No write endpoints.
-- Binds to loopback by default. Binding to a non-loopback interface requires explicit operator action.
-- No authentication surface at M0, because it is not exposed beyond loopback. Exposing it beyond loopback
-  requires an ADR covering authentication and authorisation.
+- Read-only. No write endpoints. A read-only API is **not** automatically safe for public exposure.
+- **Binds to loopback only. A non-loopback binding is REJECTED BY DEFAULT** -- `serve()` raises rather than
+  warning (ADR-0011 section 6).
+- An override flag does **not** independently authorize public exposure. External binding additionally
+  requires **all four** of:
+  1. an explicit security configuration,
+  2. a documented authentication and authorization design,
+  3. an explicit operator acknowledgement,
+  4. an accepted ADR covering that design.
+  Until all four exist, the server refuses to start on a non-loopback address regardless of flags.
+- No authentication surface at M0, precisely because it never leaves loopback.
 - stdlib `http.server` is the baseline. FastAPI is gated by
   [ADR-0004](ADR/ADR-0004-fastapi-adoption-gate.md).
 
@@ -356,15 +363,26 @@ A Scriptura deployment that requires Gomine is a **defective deployment**. This 
 
 An exchange document is a JSON object containing:
 
-- `exchange_version` — the format version
-- `direction` — `import` or `export`
+- `exchange_version` -- the format version
+- `direction` -- `import` or `export`
 - `source_system` / `target_system`
-- `records` — each with identifier, layer, provenance, licence reference where applicable, and payload
-- `identifier_mappings` — Scriptura identifier ↔ external identifier pairs
+- `records` -- each with identifier, layer, provenance, licence reference where applicable, verification
+  status, confidence where applicable, and payload
+- `derivations` -- derivation records: input record IDs **with their original layers**, output record IDs
+  **with their assigned layers**, method and parameters, actor, timestamps, tool/model identity and version
+- `identifier_mappings` -- Scriptura identifier <-> external identifier pairs
+- `disagreements` -- competing interpretations and disagreements travelling with the exchange
 - `generated_at`, `generator`
 
 Layer, provenance, and licence fields are **mandatory**. A record missing them is rejected on import and is
 never emitted on export.
+
+**All seven layers are preserved** (`scripture`, `textual_observation`, `linguistic_observation`,
+`historical_evidence`, `scholarly_interpretation`, `theological_interpretation`, `ai_hypothesis`), together
+with record identifiers, graph relationships, source provenance and attribution, derivation chains with their
+input/output links, verification status, confidence, and competing interpretations. Preserving only the layer
+name is **insufficient**: the exchange test (`tests/test_gomine_exchange.py`) verifies each of these
+properties in both directions. This is rule I4 of section 10.2, made testable.
 
 ### 10.4 What interoperability is not
 

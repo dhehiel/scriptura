@@ -19,7 +19,7 @@ Changes to these files are governed by
 |---|---|---|
 | [000-project-governance.md](000-project-governance.md) | Mission, scope, non-goals, decision rights, milestone gating | All |
 | [010-source-integrity.md](010-source-integrity.md) | Citation, quotation, provenance, anti-fabrication | All |
-| [020-epistemic-layers.md](020-epistemic-layers.md) | The five epistemic layers and their invariants | All |
+| [020-epistemic-layers.md](020-epistemic-layers.md) | The seven epistemic layers and their invariants | All |
 | [030-research-standards.md](030-research-standards.md) | Methodology, uncertainty, disagreement, null results | All |
 | [040-engineering.md](040-engineering.md) | Code, tests, migrations, dependencies, review | All |
 | [050-data-licensing.md](050-data-licensing.md) | Dataset-specific licensing, the ingestion licence gate | All |

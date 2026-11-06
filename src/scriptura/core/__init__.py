@@ -13,10 +13,11 @@ from .text import fold_diacritics, strip_marks
 from .layers import (
     LAYER_VALUES,
     EpistemicLayer,
+    DerivationRecord,
     coerce_layer,
-    compose_layer,
     require_flag,
     serialise_layer_metadata,
+    validate_derivation,
     validate_layer_fields,
 )
 from .reference import (
@@ -42,10 +43,11 @@ __all__ = [
     "strip_marks",
     "LAYER_VALUES",
     "EpistemicLayer",
+    "DerivationRecord",
     "coerce_layer",
-    "compose_layer",
     "require_flag",
     "serialise_layer_metadata",
+    "validate_derivation",
     "validate_layer_fields",
     "CANON_PROFILES",
     "DEFAULT_CANON_PROFILE",
