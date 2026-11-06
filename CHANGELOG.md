@@ -12,6 +12,41 @@ cross-referenced from here.
 
 ## [Unreleased]
 
+### Changed — seven-layer epistemic architecture (R5–R8, branch `architecture/seven-layer-epistemic-model`)
+
+- **Epistemic model revised from five layers to seven** (ADR-0011, status `proposed`): added
+  `textual_observation` and `scholarly_interpretation`. The universal ranking API (`LAYER_ORDER`,
+  `layer_strength`, `weakest_layer`, `compose_layer`) is **removed** — layers classify the nature of a record,
+  not its truth or authority. Confidence, evidence quality, provenance, verification status, disagreement,
+  tradition, and attribution are independent metadata dimensions and never determine layer.
+- **Derivation model** (`DerivationRecord`, `derivations` table): multi-output; every input/output record ID
+  with its layer; method, actor, timestamps, tool identity; verification state with reviewer and decision
+  authority; supporting evidence; preserved disagreements. Output layers are explicit and never computed;
+  machine-generated non-hypothesis outputs require evidence + an auditable decision.
+- **Conditional per-layer requirements**: a field inapplicable to a layer is never made mandatory for it.
+- **Migration `0002_seven_layer_epistemic_model.sql`** (forward-only): widens layer `CHECK`s to seven values,
+  adds nullable layer-specific columns, edge `verification_status`/`supporting_evidence`/`derivation_id`, and
+  the `derivations` table. Preserves ids, values, and row counts; no silent reclassification; idempotent.
+- **Graph**: `validate_edge_layer` replaces endpoint-inheritance (`derive_edge_layer`); non-`ai_hypothesis`
+  edges require an authorised derivation; new kinds/relations; competing edges preserved.
+- **Search**: `exact`/`folded`/`both` defined precisely (`exact` = stored-form column, tokenizer-normalized,
+  NOT byte-exact); `verify_byte_exact` added for application-level byte-exact comparison; pagination bug fixed
+  (filters applied after candidate fetch, so layer/edition filters no longer drop relevant results); hits carry
+  provenance, verification status, and the non-authoritative flag.
+- **Retrieval**: `RetrievalResult` gains `edition_source` and `verification_status` (never invented).
+- **API security**: non-loopback binding is **rejected by default** (`ExternalBindingRefused` before any
+  socket). External binding requires flag + security config + auth design + operator acknowledgement + an
+  approved ADR; none exists, so it fails closed.
+- **Licensing**: multi-licence datasets evaluated per licence — one unresolved licence blocks the dataset;
+  commercial permission aggregates most-restrictively; any share-alike propagates.
+- **Gomine exchange** (`exchange.py`): versioned export/import preserving all seven layers, ids and graph
+  relationships, provenance and attribution, derivation chains, verification status and confidence, and
+  competing interpretations — verified by `tests.test_gomine_exchange`.
+- **Documentation**: ADR-0011 supersedes ADR-0008 (retained, marked superseded); `.clinerules/020` rewritten;
+  BKB-DATA-001 → v1.1.0; BKB-ARCH-001/BKB-CORPUS-001/BKB-AGENTS-001/BKB-VERIFY-001/DKF-ARCH-001 reconciled;
+  README/AGENTS/NOTICE updated; M0 acceptance criteria gained section J.
+- **Tests**: suite grows to **146 tests, all passing** under stdlib `unittest`.
+
 ### Planned — M1 (gated, not started)
 
 - Reference core in production use against a real edition.

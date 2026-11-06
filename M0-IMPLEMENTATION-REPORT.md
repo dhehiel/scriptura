@@ -293,3 +293,97 @@ No agent executes. Nothing is claimed that was not performed.
 The milestone closes when criterion I1 is recorded: a completed architecture
 review by a human reviewer, with identity and date. Until then the M0 → M1
 gate is **CLOSED** and corpus ingestion is **prohibited**.
+
+---
+
+## 10. R5–R8 seven-layer epistemic remediation (post-M0)
+
+Branch `architecture/seven-layer-epistemic-model`, cut from `bootstrap/m0-recovery` at `8d13921`.
+This section records the seven-layer architecture decision (ADR-0011, status **proposed**) and its
+implementation. It does **not** mark M0 complete: criterion I1 (human architecture review) remains outstanding
+and the M0 → M1 gate remains **CLOSED**.
+
+### 10.1 Commits
+
+| Commit | Package |
+|---|---|
+| `a114c5a` | R5 — ADR-0011, ADR-0008 superseded, normative docs (.clinerules/020, BKB-DATA-001 v1.1.0, ARCH/CORPUS/AGENTS/VERIFY/DKF, README/AGENTS/NOTICE/040) |
+| `a75b18e` | R6 — seven-layer core, derivation model, migration 0002, graph, validators, schema |
+| `7b04c3d` | R7 — search semantics (exact/folded/both, byte-exact, pagination), retrieval metadata, API security, multi-licence gate |
+| `7852460` | R8a — regression suite (146 tests) + `exchange.py` round-trip module |
+| *(R8b)* | documentation reconciliation + this report update |
+
+### 10.2 What was implemented
+
+- **Seven layers** in `core/layers.py`: `scripture`, `textual_observation`, `linguistic_observation`,
+  `historical_evidence`, `scholarly_interpretation`, `theological_interpretation`, `ai_hypothesis`.
+  The universal ranking API (`LAYER_ORDER`, `layer_strength`, `weakest_layer`, `compose_layer`) is **removed**.
+  Confidence, evidence quality, provenance, verification status, disagreement, tradition, and attribution are
+  independent metadata dimensions and never determine layer.
+- **Conditional per-layer requirements** (`LAYER_REQUIREMENTS` + `required_if`): a field inapplicable to a
+  layer is never made mandatory for it. Conditions are a closed, documented set; an unknown condition is an
+  error, never a silent pass.
+- **Derivation model** (`DerivationRecord`, `validate_derivation`, `derivations` table): multi-output, every
+  input/output record ID with its layer, method, actor, timestamps, tool identity, verification state with
+  reviewer and decision authority, supporting evidence, and preserved disagreements. Output layers are explicit
+  and never computed. Machine-generated non-hypothesis outputs require evidence + decision authority.
+- **Migration `0002_seven_layer_epistemic_model.sql`** (forward-only): rebuilds `claims`, `nodes`, and `edges`
+  to widen the layer `CHECK` to seven values; adds nullable layer-specific columns guarded per-layer; adds
+  `verification_status`/`supporting_evidence`/`derivation_id` to edges; adds the `derivations` table. Explicit
+  column lists (a bare `SELECT *` would have misaligned the mid-table new columns), an FK-off rebuild window
+  with the runner re-asserting `foreign_keys=ON`, and preservation of ids, values, and row counts with **no
+  silent reclassification**. Verified idempotent with a verified ledger.
+- **Graph**: `validate_edge_layer` replaces `derive_edge_layer` (no endpoint inheritance, no ranking);
+  non-`ai_hypothesis` edges require an authorised derivation; new node kinds and relations; competing edges
+  preserved.
+- **Search**: docstring corrected (`remove_diacritics` folds Latin only — verified on SQLite 3.40.1);
+  `exact`/`folded`/`both` defined precisely; `verify_byte_exact`; pagination bug fixed; hits carry layer, id,
+  edition/source, provenance, verification status, and the non-authoritative flag.
+- **Retrieval**: `RetrievalResult` gains `edition_source` and `verification_status` (never invented).
+- **API security**: non-loopback binding **rejected by default** (`ExternalBindingRefused` before any socket).
+  Four-part gate plus approved ADR required; the approved-ADR set is empty, so it fails closed.
+- **Multi-licence gate**: every applicable licence checked; one unresolved licence blocks; commercial
+  aggregates most-restrictively; any share-alike propagates.
+- **Gomine exchange** (`exchange.py`): versioned export/import per BKB-ARCH-001 §10.3. Round-trip preserves
+  all seven properties, verified by `tests.test_gomine_exchange` (10 tests).
+- **Governance/docs reconciled**: ADR-0011 (proposed) supersedes ADR-0008 (retained, superseded);
+  `.clinerules/020` rewritten; BKB-DATA-001 → v1.1.0; ARCH/CORPUS/AGENTS/VERIFY/DKF updated; README/AGENTS/
+  NOTICE/040 updated; acceptance criteria gained section J.
+
+### 10.3 Test evidence (R8 run)
+
+- `make test`: **146 tests OK** (stdlib `unittest`).
+- `make check`: **PASSED (148 files scanned)** — structure, hygiene, dependency hygiene, syntax/JSON,
+  Gomine-independence, agent absence, licence gate, docs, schemas.
+- Coverage includes all 18 directive items: seven-layer validation and unknown rejection; no-ranking API; no
+  automatic promotion; derivation chains; conditional requirements; migration preservation/constraints/
+  idempotency; graph typing and competing edges; exact/folded FTS and pagination; non-loopback refusal;
+  multi-licence evaluation; ingestion gate and synthetic-only restrictions; full Gomine round trip; repository
+  hygiene and absence of corpus data.
+
+### 10.4 Known limitations and unresolved issues
+
+1. **Criterion I1 — human architecture review: NOT DONE.** ADR-0011 is `proposed`, not accepted. This report
+   and the implementation do not substitute for that review.
+2. **CI workflow not pushed** (GitHub `workflows` permission). Content written and reviewed; no hosted run has
+   occurred, and none is claimed.
+3. **`ruff`/`mypy` advisory only** (not installable in the reference environment).
+4. **LEANN/FastAPI absent** (verified). Degraded/guarded paths executed and tested; no integration claim.
+5. **Wide-table trade-off** documented in ADR-0011 §7 with explicit reconsideration conditions; accepted for
+   now with limitations recorded rather than hidden.
+6. **No corpus data, no dataset adapter, no executing agent.** Real corpus ingestion remains disabled; the
+   ingestion implementation is preflight validation and preparation only (BKB-CORPUS-001 §4.3).
+7. Exchange documents are version `1.0`; a version change is a schema change requiring an ADR.
+
+### 10.5 Dataset and licensing status (unchanged by remediation)
+
+27 sources (5 verified, 1 disputed, 1 restricted, 7 unverified, 13 absent); 9 licence records; 0 datasets;
+0 ingestible; ingestion gate closed. **No corpus downloaded, vendored, ingested, or committed** during R5–R8 —
+verified by `make check` hygiene and `tests.test_repo_hygiene`.
+
+### 10.6 Acceptance status
+
+Criteria A–G and J are met with evidence; H is met except H5 (workflow push blocked on permissions).
+**Criterion I1 remains NOT MET.** The M0 → M1 gate is **CLOSED**. Implementation completion of R5–R8 is not
+milestone approval and is not authorisation to begin M1 or to ingest any dataset.
+

@@ -74,7 +74,7 @@ make check && make test
 | D6 | **DKF-ARCH-001** Discovery and Knowledge Framework: hypothesis lifecycle, strategies, cross-domain linking, ranking, integrity | `docs/architecture/DKF-ARCH-001-discovery-framework.md` | Met |
 | D7 | Each specification carries ID, status, version, normative flag, and change history | Present in text (verified by inspection); `tools/check_docs.py` lands in R2 | Deferred — re-verified in R2 run |
 | D8 | Specification index and identifier convention documented | `docs/architecture/README.md` | Met |
-| D9 | Architecture Decision Records exist with a mandatory "Alternatives considered" section | `docs/architecture/ADR/` — ADR-0001 … ADR-0010 | Met |
+| D9 | Architecture Decision Records exist with a mandatory "Alternatives considered" section | `docs/architecture/ADR/` — ADR-0001 … ADR-0011 (ADR-0011 supersedes ADR-0008) | Met |
 
 ## E. Dataset governance
 
@@ -118,12 +118,12 @@ make check && make test
 
 | # | Criterion | Evidence | Status |
 |---|---|---|---|
-| H1 | Repository structure and hygiene checks pass | `make check` | Blocked — `Makefile` and check tools land in R2 |
-| H2 | Licence and registry consistency checks pass | `make check-licences` | Blocked — lands in R2 |
-| H3 | Documentation integrity checks pass: required files present, relative links resolve, specifications well-formed | `make check-docs` | Blocked — lands in R2 |
-| H4 | Full test suite passes under stdlib `unittest` | `make test` | Blocked — suite lands in R2/R3 |
-| H5 | CI workflow runs the same checks | `.github/workflows/ci.yml` | Blocked — workflow lands in R2 |
-| H6 | No task is reported complete that was not performed and verified | `M0-IMPLEMENTATION-REPORT.md` | Deferred — report lands in R4 |
+| H1 | Repository structure and hygiene checks pass | `make check` | **Met** — `make check` PASSED (148 files scanned, R8 run) |
+| H2 | Licence and registry consistency checks pass | `make check-licences` | **Met** — 27 sources, 9 licences, gate closed, 0 ingestible |
+| H3 | Documentation integrity checks pass: required files present, relative links resolve, specifications well-formed | `make check-docs` | **Met** — all documents present, links resolve, ADR index complete |
+| H4 | Full test suite passes under stdlib `unittest` | `make test` | **Met** — 146 tests OK (R8 run) |
+| H5 | CI workflow runs the same checks | `.github/workflows/ci.yml` | **Blocked (permissions)** — workflow written on disk; push refused without `workflows` permission. Content reviewed; not a hosted-run claim |
+| H6 | No task is reported complete that was not performed and verified | `M0-IMPLEMENTATION-REPORT.md` | **Met** — R4 report + R8 reconciliation |
 
 ## I. Gate criterion — **NOT MET**
 
@@ -154,12 +154,34 @@ make check && make test
 
 ---
 
+## J. Seven-layer epistemic architecture (R5-R8 remediation)
+
+| # | Criterion | Evidence | Status |
+|---|---|---|---|
+| J1 | ADR-0011 created; ADR-0008 marked superseded; index updated | `docs/architecture/ADR/` | **Met** |
+| J2 | Seven-layer model implemented; universal ranking API removed | `core/layers.py` (no LAYER_ORDER/layer_strength/weakest_layer/compose_layer); tests | **Met** |
+| J3 | Independent metadata dimensions documented; confidence never determines layer | BKB-DATA-001 section 2.4; `tests.test_layers` | **Met** |
+| J4 | Derivation model: multi-output, input/output layers explicit, disagreements preserved | `core/layers.py` DerivationRecord; migration 0002 `derivations`; `tests.test_layers` | **Met** |
+| J5 | Layer-specific conditional requirements; no unrelated field forced | `LAYER_REQUIREMENTS` + `required_if`; `tests.test_layers` | **Met** |
+| J6 | Migration 0002 forward-only; preserves ids/values/counts; no silent reclassification; idempotent | `0002_seven_layer_epistemic_model.sql`; `tests.test_storage.Migration0002Test` | **Met** |
+| J7 | Graph: typed relations, competing edges preserved, non-ai edges derivation-gated | `graph/model.py` `validate_edge_layer`; `tests.test_graph` | **Met** |
+| J8 | Search: exact/folded/both precise; byte-exact app-level; pagination fix | `search/fts.py` `verify_byte_exact`; `tests.test_fts` | **Met** |
+| J9 | API: non-loopback refused by default; four-part gate; loopback-only default tested | `api/server.py` `ExternalBindingRefused`; `tests.test_api` | **Met** |
+| J10 | Multi-licence gate: one unresolved licence blocks the dataset | `provenance/licensing.py` `evaluate`; `tests.test_licensing.MultiLicenceTest` | **Met** |
+| J11 | Gomine round trip preserves all seven properties both directions | `exchange.py`; `tests.test_gomine_exchange` (10 tests) | **Met** |
+| J12 | Six specifications + governance docs reconciled to seven layers | BKB-*/DKF-*/`.clinerules/020`/README/AGENTS/NOTICE | **Met** |
+| J13 | Ingestion accurately described as preflight/validation preparation (not a full engine) | BKB-CORPUS-001 section 4.3; `tests.test_ingestion` | **Met** |
+| J14 | No corpus downloaded or ingested during remediation | `make check` hygiene; `tests.test_repo_hygiene` | **Met** |
+
+---
+
 ## M0 outcome
 
 | Item | Value |
 |---|---|
 | Criteria A–G | Met, with evidence (per-criterion status above) |
-| H — verification harness | **Blocked**, lands in R2/R3 |
+| H — verification harness | **Met** (H5 workflow push blocked on permissions) |
+| J — seven-layer remediation | **Implemented** (R5-R8); ADR-0011 still `proposed` pending human review |
 | Criterion I1 | **Not met** — requires human architecture review |
 | Milestone status | **Complete pending architecture review** |
 | M0 → M1 gate | **CLOSED** |
